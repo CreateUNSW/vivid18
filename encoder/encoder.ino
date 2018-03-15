@@ -182,11 +182,12 @@ void loop(){
   
   long test2;
   test2= encode(memes);
+  Serial.println(decode(test2)); 
 
   
   delay (1000);
 
-  
+  exit(1); 
   
 }
 
