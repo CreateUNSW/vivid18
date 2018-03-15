@@ -11,7 +11,7 @@
 #define NUM_CHAINS 16
 //--------------------------------------------------
 
-CRGB leds[NUM_CHAINS][NUM_LEDS];
+CRGB leds[NUM_LEDS];
 
 
 using namespace std;
@@ -34,15 +34,15 @@ public:
       colors.push_back(new CHSV(0, 0, 0));
       ((leds[i])) &= 255;
     }
-    Serial.println("create chain");
-    Serial.println(String(colors.size()));
-    Serial.flush();
+    //Serial.println("create chain");
+    //Serial.println(String(colors.size()));
+    //Serial.flush();
   }
 
   // apply effect to color values
   void executeEffects() {
-    Serial.println("executing");
-    Serial.flush();
+    //Serial.println("executing");
+    //Serial.flush();
     int size = colors.size();
     for (int i = 0; i < size; i++) {
       //colors.push_back(&(CHSV(0, 0, 0)));
@@ -50,8 +50,8 @@ public:
     for (auto effect : effects) {
       effect->draw(millis(), &colors);
     }
-    Serial.println("finished exec");
-    Serial.flush();
+    //Serial.println("finished exec");
+    //Serial.flush();
   };
 
   // write color values to LEDs
@@ -76,17 +76,17 @@ public:
   fract8 fractspeed;
 
   virtual void draw(int currentTime, vector<CHSV*>* colors) {
-    Serial.println("begin draw");
-    Serial.flush();
+   // Serial.println("begin draw");
+    //Serial.flush();
     for (auto color : *colors) {
-      toColor.hue > color->hue ? color->hue = lerp8by8(color->hue, toColor.hue, fractspeed) : 1;
+      toColor.hue > color->hue ? color->hue += speed : 1;
       toColor.sat > color->sat ? color->sat += speed : 1;
-      toColor.val > color->val ? color->val = brighten8_raw(color->val += speed) : 1;     
+      toColor.val > color->val ? color->val += speed : 1;     
     }
-    Serial.println("COLORS:");
-    Serial.println(String(toColor.val));
-    Serial.println(String(((*colors)[0])->val));
-    Serial.println("finish draw");
+    //Serial.println("COLORS:");
+    //Serial.println(String(toColor.val));
+    //Serial.println(String(((*colors)[0])->val));
+    //Serial.println("finish draw");
     Serial.flush();
   };
 };
@@ -103,7 +103,7 @@ void setup() {
 
   // Add fade effect to chain
   Fade* fade = new Fade();
-  fade->toColor = CHSV(100, 255, 255);
+  fade->toColor = CHSV(255, 255, 255);
   fade->speed = 10;
   fade->fractspeed = 0.01f;
   
@@ -116,17 +116,20 @@ void setup() {
 }
 
 void loop() {
+  unsigned long start = micros();
   for (auto chain : chains) {
     chain.executeEffects();
     for (auto col : chain.colors) {
     }
     chain.displayLEDs();
-    Serial.println("chaining");
-    Serial.flush();
+    //Serial.println("chaining");
+    //Serial.flush();
   }
-  Serial.println("boop");
+  unsigned long end = micros();
+  unsigned long delta = end - start;
+  Serial.println(String(delta));
   Serial.flush();
 
-  delay(100);
+  delay(30);
 }
 
