@@ -111,13 +111,13 @@ int encode (DataStream memes) {
   tempBits = memes.colorA;
   
   if (tempBits >> 4 == 0b0){
-    Serial.println("this is trueee!");
+    //Serial.println("this is trueee!");
     results[1] = 0 & 0xff | results[1] << 1;
     results[2] = (memes.colorA & 0xff);
   }else{
     results[1] = 1 & 0xff | results[1] <<1;
     tempBits = memes.colorA;
-    results[2] = tempBits >> 1 & 0xff;
+    results[2] = (tempBits & ~(1<<4)) & 0xff;
   }
   /*
   //if the leading bit is 0 then just pad or else shift it 
@@ -126,12 +126,16 @@ int encode (DataStream memes) {
 
   tempBits = memes.colorB;
   if (tempBits >> 4 == 0b0){
-    Serial.println("this is true number 2");
+    //Serial.println("this is true number 2");
     results[2] = 0 & 0xff | results[2] << 1;
     results[3] = (memes.colorB & 0xff); 
   }else{
+    //Serial.println("this is false number 2");
     results[2] = 1 & 0xff | results[2] << 1;
-    results[3] = (memes.colorB >> 1 & 0xff);
+
+    //Serial.print("checking number ");
+    //Serial.println(memes.colorB, BIN);
+    results[3] = (memes.colorB & ~(1<<4)) & 0xff; 
   }
   
   results[3] = results[3] << 4;
@@ -175,7 +179,7 @@ void loop(){
   memes.colorA = 11;
   
   memes.lumB = 3;
-  memes.colorB = 13;
+  memes.colorB = 29;
 
   //terminator
   //DataStream *memesAdd = memes;

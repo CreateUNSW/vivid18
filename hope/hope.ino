@@ -17,6 +17,7 @@ class Effect {
 public:
   virtual ~Effect() {}
   virtual void draw(int currentTime, vector<CHSV*> colors) = 0;
+  virtual void hello() = 0;
 };
 
 class Chain {
@@ -27,14 +28,19 @@ public:
   // apply effect to color values
   void executeEffects() {
     int size = colors.size();
-    Serial.println(String(size));
+    Serial.println(String(size) + " colors");
     Serial.flush();
     colors.clear();
     for (int i = 0; i < size; i++) {
       colors.push_back(&(CHSV(0, 0, 0)));
     }
     for (auto effect : effects) {
+      Serial.println("HELLO_0");
+      Serial.flush();
+      effect->hello();
       effect->draw(millis(), colors);
+      Serial.println("HERE_1");
+      Serial.flush();
     }
   };
 
@@ -52,12 +58,21 @@ public:
   CHSV toColor;
   int speed;
 
+  virtual void hello() {
+    Serial.println("Fade effect");
+    Serial.flush();
+  };
+
   virtual void draw(int currentTime, vector<CHSV*> colors) {
+    Serial.println("Drawing..");
+    Serial.flush();
     for (auto color : colors) {
       color->hue = toColor.hue;
       color->sat = toColor.sat;
       color->val = toColor.val;
     }
+   Serial.println("Finished drawing...");
+   Serial.flush();
   };
 };
 
@@ -70,12 +85,14 @@ void setup() {
   
   Chain chain;
   chain.colors.push_back(&(CHSV(0, 0, 0)));
+  chain.colors.push_back(&(CHSV(1, 0, 0)));
+  chain.colors.push_back(&(CHSV(2, 0, 0)));
 
-  Fade fade;
-  fade.toColor = CHSV(160, 255, 255);
-  fade.speed = 1;
+  Fade *fade = new Fade();
+  fade->toColor = CHSV(160, 255, 255);
+  fade->speed = 1;
 
-  chain.effects.push_back(&fade);
+  chain.effects.push_back(fade);
 
   chains.push_back(chain); 
   delay(1000);
@@ -84,9 +101,11 @@ void setup() {
 }
 
 void loop() {
+  Serial.println("begin loop");
   for (auto chain : chains) {
     chain.executeEffects();
     for (auto col : chain.colors) {
+      Serial.println("for loop");
       Serial.println(String(col->val));
       Serial.flush();
     }
