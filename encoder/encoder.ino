@@ -69,24 +69,22 @@ DataStream decode (int input []) {
   // little endian or big boy?
   //unpack the stream into a datastruct
   DataStream result;
-  int tempBits; 
-
-  int spiltA;
-  int spiltB;
+  int cutTemp;
   //one byte goes here
-  result.addr = input[0] >> 5 & 0xff;
+  result.addr = input[0] >> 5;
   
   //prob add an if condition here
   if(input[0] & (1<<4)){
-    Serial.println("this is true");
+    //Serial.println("this is true");
     result.updir = true;
   }else{
     result.updir = false;
   }
-  
+   
   //might wanna make a temp bit so it will have snipets 
-  result.prior = (input[0] & ~(result.addr<<5 | result.updir<<3)) >>2 ;
-  int cutTemp = (result.addr<<5 | result.updir<<3 | result.prior <<2);
+  cutTemp = result.addr<<5 | result.updir<<3;
+  result.prior = (input[0] & ~cutTemp) >>2 ;
+  cutTemp |= result.prior <<2;
   //Serial.println(cutTemp, BIN);
   result.pace = (input[0] & ~cutTemp); 
   
@@ -103,11 +101,11 @@ DataStream decode (int input []) {
 
   //Serial.print("the lum a color: ");
   //Serial.println(result.lumA, BIN);
-
+  cutTemp = input[2] >> 4;
   //need the last bit of the previous array + 5 bits
-  result.colorA = (input[1] >> 7) | ( input[2] >> 4 & 0xff);
+  result.colorA = (input[1] >> 7) | (cutTemp);
   //remain bits after 4th bit
-  result.lumB = (input[2] & ~(( input[2] >> 4 & 0xff) << 4)) >> 1;
+  result.lumB = (input[2] & ~(cutTemp << 4)) >> 1;
   
 
   //need the last bit of the previous array and clear out the padding
@@ -147,15 +145,6 @@ DataStream decode (int input []) {
   Serial.print("color B: ");
   Serial.println(result.colorB);
   
-  
-  /* working model
-  long result;
-  result = input[0] & 0xff;
-  result = input[1] & 0xff | result<<8;
-  result = input[2] & 0xff | result<<8;
-  result = input[3] & 0xff | result<<8;
-  */
-
   return result;
 }
 
