@@ -87,7 +87,7 @@ DataStream decode (int input []) {
   //might wanna make a temp bit so it will have snipets 
   result.prior = (input[0] & ~(result.addr<<5 | result.updir<<3)) >>2 ;
   int cutTemp = (result.addr<<5 | result.updir<<3 | result.prior <<2);
-  Serial.println(cutTemp, BIN);
+  //Serial.println(cutTemp, BIN);
   result.pace = (input[0] & ~cutTemp); 
   
   /*
@@ -99,36 +99,53 @@ DataStream decode (int input []) {
 
   //3bits and a pad + another 3 bits
   result.eff = input[1] >> 5 & 0xff;
-  //result.lumA = ;
+  result.lumA = (input[1] & ~(result.eff << 5)) >> 1;
+
+  //Serial.print("the lum a color: ");
+  //Serial.println(result.lumA, BIN);
 
   //need the last bit of the previous array + 5 bits
-  //resylt.colorA =;
+  result.colorA = (input[1] >> 7) | ( input[2] >> 4 & 0xff);
   //remain bits after 4th bit
-  //result.lumB =;
+  result.lumB = (input[2] & ~(( input[2] >> 4 & 0xff) << 4)) >> 1;
+  
 
   //need the last bit of the previous array and clear out the padding
-  //result.colorB = input[3];
+  result.colorB = (input[2] >> 7 ) | (input[3] >>4);
   int bitNum = 0;
 
   //debugging code here
-  Serial.println("debug ===========================");
+  Serial.println("debug\n===========================");
+  Serial.print("Byte 1: ");
   Serial.println(input[0],BIN);
-  //Serial.println()
-  //Serial.println()
-  //Serial.println()
+  Serial.print("Byte 2: ");
+  Serial.println(input[1], BIN);
+  Serial.print("Byte 3: ");
+  Serial.println(input[2], BIN);
+  Serial.print("Byte 4: ");
+  Serial.println(input[3], BIN);
 
   //check the struct
+  Serial.println("===========================\nConverted values\n===========================");
+  Serial.print("address: ");
   Serial.println(result.addr);
-  //Serial.println("check");
-  //Serial.println(input[0], BIN);
+  Serial.print("up boolean: ");
   Serial.println(result.updir);
+  Serial.print("priority: ");
   Serial.println(result.prior);
+  Serial.print("speed: ");
   Serial.println(result.pace);
+  Serial.print("effect: ");
   Serial.println(result.eff);
-  //Serial.println(result.lumA);
-  //Serial.println(result.colorA);
-  //Serial.println(result.lumB);
-  //  Serial.println(result.colorB);
+  
+  Serial.print("lum A: ");
+  Serial.println(result.lumA);
+  Serial.print("color A: ");
+  Serial.println(result.colorA);
+  Serial.print("lum B: ");
+  Serial.println(result.lumB);
+  Serial.print("color B: ");
+  Serial.println(result.colorB);
   
   
   /* working model
@@ -215,8 +232,8 @@ void EncodeTest(){
   
   memes.addr = 7;
   memes.updir = false;
-  memes.prior = 1;
-  memes.pace = 2;
+  memes.prior = 2;
+  memes.pace = 1;
   memes.eff = 5;
   memes.lumA = 3;
   memes.colorA = 11;
