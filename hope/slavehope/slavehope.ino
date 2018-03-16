@@ -20,8 +20,9 @@ byte readByte()
 
 void setup() {
   // put your setup code here, to run once:
-  Wire.begin(8);                // join i2c bus with address #8
+  Wire.begin(0x08);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
+  Wire.onRequest(sendEvent)
   Serial.begin(9600);           // start serial for output
 
 
@@ -78,4 +79,8 @@ void receiveEvent(int howMany) {
   }
 
   FastLED.show();
+}
+
+void sendEvent() {
+  Wire.write(4); 
 }
