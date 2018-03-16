@@ -20,9 +20,10 @@ byte readByte()
 
 void setup() {
   // put your setup code here, to run once:
-  Wire.begin(8);                // join i2c bus with address #8
+  Wire.begin(0x08);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
-  Serial.begin(9600);           // start serial for output
+  Wire.onRequest(sendEvent); 
+  Serial.begin(115200);           // start serial for output
 
 
   FastLED.addLeds<LED_TYPE, DATA_PIN, RBG>(leds, NUM_LEDS); 
@@ -46,7 +47,8 @@ void loop() {
 
   FastLED.show();
   */
-  delay(30);
+  delay(1000);
+  Serial.println("tick");
 }
 /*
   1 -> data pin
@@ -55,27 +57,32 @@ void loop() {
 
 */
 void receiveEvent(int howMany) {  
-  Serial.println(String("bytes received ") + howMany);
-  int led = 0;
-  byte pin = Wire.read();
-  byte numLEDs = Wire.read();
-  if (numLEDs != (howMany - 2) / 2)
-  {
-    Serial.println("ERROR WOWOWOWO");
-  }
-  byte hue;
-  byte lum;
-  while(led < numLEDs && Wire.available())
-  {
-    hue = Wire.read();
-    lum = Wire.read();
-    leds[led] = CHSV(hue, 255, lum);
-    led++;
-  }
-  if (led != numLEDs)
-  {
-    Serial.println(String("ERROR BOOP BYE ") + led);
-  }
+  Serial.println(howMany);
+  while (Wire.available()) { Wire.read(); };
+//  int led = 0;
+//  byte pin = Wire.read();
+//  byte numLEDs = Wire.read();
+//  if (numLEDs != (howMany - 2) / 2)
+//  {
+//    Serial.println("ERROR WOWOWOWO");
+//  }
+//  byte hue;
+//  byte lum;
+//  while(led < numLEDs && Wire.available())
+//  {
+//    hue = Wire.read();
+//    lum = Wire.read();
+//    leds[led] = CHSV(hue, 255, lum);
+//    led++;
+//  }
+//  if (led != numLEDs)
+//  {
+//    Serial.println(String("ERROR BOOP BYE ") + led);
+//  }
+//
+//  FastLED.show();
+}
 
-  FastLED.show();
+void sendEvent() {
+  Wire.write(4); 
 }
