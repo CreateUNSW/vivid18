@@ -64,22 +64,87 @@ void setup() {
   Serial.begin(9600);
 }
 
-int decode (char input []) {
-  // takes a 4 byte brinary input and returns a 32 bit int
+DataStream decode (int input []) {
+  //need to malloc 
   // little endian or big boy?
-  //ie 0000 0000 0000 0000
-  // need to run some test to confirm
-  unsigned long result;
-  //result = input[3];
-  //result = (result<<8)|input[2];
-  //result = (result<<8)|input[1];
-  result = input[0] & 0xff;
-  result = input[1] & 0xff | result<<8;
-  result = input[2] & 0xff | result<<8;
-  result = input[3] & 0xff | result<<8;
+  //unpack the stream into a datastruct
+  DataStream result;
+  int cutTemp;
+  //one byte goes here
+  result.addr = input[0] >> 5;
+  
+  //prob add an if condition here
+  if(input[0] & (1<<4)){
+    //Serial.println("this is true");
+    result.updir = true;
+  }else{
+    result.updir = false;
+  }
+   
+  //might wanna make a temp bit so it will have snipets 
+  cutTemp = result.addr<<5 | result.updir<<3;
+  result.prior = (input[0] & ~cutTemp) >>2 ;
+  cutTemp |= result.prior <<2;
+  //Serial.println(cutTemp, BIN);
+  result.pace = (input[0] & ~cutTemp); 
+  
+  /*
+  1. 111 0 10 01 
+  2. 1010 011 0
+  3. 1011 011 0
+  4. 1101 0000
+  */
 
+  //3bits and a pad + another 3 bits
+  result.eff = input[1] >> 5 & 0xff;
+  result.lumA = (input[1] & ~(result.eff << 5)) >> 1;
 
-  Serial.println(result);
+  //Serial.print("the lum a color: ");
+  //Serial.println(result.lumA, BIN);
+  cutTemp = input[2] >> 4;
+  //need the last bit of the previous array + 5 bits
+  result.colorA = (input[1] >> 7) | (cutTemp);
+  //remain bits after 4th bit
+  result.lumB = (input[2] & ~(cutTemp << 4)) >> 1;
+  
+
+  //need the last bit of the previous array and clear out the padding
+  result.colorB = (input[2] >> 7 ) | (input[3] >>4);
+  int bitNum = 0;
+
+  //debugging code here
+  Serial.println("debug\n===========================");
+  Serial.print("Byte 1: ");
+  Serial.println(input[0],BIN);
+  Serial.print("Byte 2: ");
+  Serial.println(input[1], BIN);
+  Serial.print("Byte 3: ");
+  Serial.println(input[2], BIN);
+  Serial.print("Byte 4: ");
+  Serial.println(input[3], BIN);
+
+  //check the struct
+  Serial.println("===========================\nConverted values\n===========================");
+  Serial.print("address: ");
+  Serial.println(result.addr);
+  Serial.print("up boolean: ");
+  Serial.println(result.updir);
+  Serial.print("priority: ");
+  Serial.println(result.prior);
+  Serial.print("speed: ");
+  Serial.println(result.pace);
+  Serial.print("effect: ");
+  Serial.println(result.eff);
+  
+  Serial.print("lum A: ");
+  Serial.println(result.lumA);
+  Serial.print("color A: ");
+  Serial.println(result.colorA);
+  Serial.print("lum B: ");
+  Serial.println(result.lumB);
+  Serial.print("color B: ");
+  Serial.println(result.colorB);
+  
   return result;
 }
 
@@ -101,8 +166,6 @@ int encode (DataStream memes) {
   3. 1011 011 0
   4. 1101 0000
   */
-
-  
   results[1] =  memes.eff & 0xff | results[1] << 3;
   //add padding heres
   results[1] = 0 & 0xff | results[1] << 1;
@@ -151,47 +214,56 @@ int encode (DataStream memes) {
   return *results;
 }
 
+void EncodeTest(){
+  //example input being tested:
+  ////inputs 1110 1001 1010 011 01011 011 01101 0000
+  DataStream memes;
+  
+  memes.addr = 7;
+  memes.updir = false;
+  memes.prior = 2;
+  memes.pace = 1;
+  memes.eff = 5;
+  memes.lumA = 3;
+  memes.colorA = 11;
+  memes.lumB = 3;
+  memes.colorB = 29;
 
-//helper functions
+  //prob need to think of a null terminator at the end of the stream
+  //DataStream *memesAdd = memes;
 
-void loop(){
-    //do some test here
-  /*char test1[4];
+  //temp
+  long test2;
+  test2= encode(memes);
+}
+
+void DecodeTest(){
+  int test1[4];
   test1[0] = 0b11101001;
   test1[1] = 0b10100110;
   test1[2] = 0b10110110;
   test1[3] = 0b11010000;
-  char *p = test1;
+  int *p = test1;
   decode (p);
-  */
 
-  DataStream memes;
-  //inputs 1110 1001 1010 011 01011 011 01101 0000
-  memes.addr = 7;
-  memes.updir = false;
-  
-  memes.prior = 2;
-  memes.pace = 1;
-  
-  memes.eff = 5;
-  
-  memes.lumA = 3;
-  memes.colorA = 11;
-  
-  memes.lumB = 3;
-  memes.colorB = 29;
+  /*expected serial print out result
+   * 
+   */
+}
 
-  //terminator
-  //DataStream *memesAdd = memes;
+//helper functions
+boolean validData (int stream[]){
+  //check data integrity
+  //check if the size is correct
   
-  long test2;
-  test2= encode(memes);
-  Serial.println(decode(test2)); 
+  return true;
+}
 
+void loop(){
+  //run some test cases here
+  //EncodeTest();
+  DecodeTest();
   
   delay (1000);
-
-  exit(1); 
-  
 }
 

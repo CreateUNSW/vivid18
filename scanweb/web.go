@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
+	"github.com/pul-s4r/vivid18/scanweb/geo"
 )
 
 var (
@@ -43,8 +44,11 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println("Stopping scan...")
+
 	dev.StopScan()
 	dev.Drain()
+	dev.SetMotorSpeed(2)
 	// dev.SetMotorSpeed(2)
 	// dev.WaitUntilMotorReady()
 	// dev.SetSampleRate(sweep.Rate1000)
@@ -53,7 +57,7 @@ func main() {
 
 	fmt.Println("Starting scan")
 
-	_, err = dev.StartScan()
+	scanner, err := dev.StartScan()
 	if err != nil {
 		panic(err)
 	}
@@ -62,24 +66,24 @@ func main() {
 
 	pprof.StartCPUProfile(f)
 
-	// go func() {
-	// 	for scan := range scanner {
-	// 		mutex.Lock()
-	// 		for _, lis := range listeners {
-	// 			lis <- scan
-	// 		}
-	// 		mutex.Unlock()
-	// 	}
+	go func() {
+		for scan := range scanner {
+			mutex.Lock()
+			for _, lis := range listeners {
+				lis <- scan
+			}
+			mutex.Unlock()
+		}
 
-	// 	mutex.Lock()
-	// 	for _, lis := range listeners {
-	// 		close(lis)
-	// 	}
-	// 	mutex.Unlock()
-	// }()
+		mutex.Lock()
+		for _, lis := range listeners {
+			close(lis)
+		}
+		mutex.Unlock()
+	}()
 
 	go func() {
-		// e.GET("/ws", wsHandler)
+		e.GET("/ws", wsHandler)
 		e.File("/", "index.html")
 		e.File("/script.js", "script.js")
 
@@ -116,4 +120,20 @@ func wsHandler(c echo.Context) error {
 	}
 
 	return nil
+}
+
+func processScan(scan sweep.Scan) sweep.Scan {
+	sensorP := &geo.Point{
+		X: 100,
+		Y: 100,
+	}
+
+	m := geo.NewMap()
+	for _, scanP := range scan {
+		rad := (scanP.Angle / 180.0) * math.Pi;
+
+		m.Add(sensorP.Add(&Point{
+			X: Math.Cos(rad) *
+		}))
+	}
 }
