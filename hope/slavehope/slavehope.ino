@@ -22,7 +22,7 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(0x08);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
-  Wire.onRequest(sendEvent); 
+//  Wire.onRequest(sendEvent); 
   Serial.begin(115200);           // start serial for output
 
 
