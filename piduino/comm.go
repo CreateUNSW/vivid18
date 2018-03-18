@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"time"
+	// "time"
+    "encoding/binary"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/host"
@@ -29,15 +30,27 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+    fmt.Println("Starting: comm.go")
 
-	log.Println("set speed:", bus.SetSpeed(1000000))
+	log.Println("Set speed:", bus.SetSpeed(1000000))
 
-	var data []byte
+	/* var data []byte
 	for i := 0; i < 30; i++ {
 		data = append(data, 0x12)
 	}
+    log.Println("data: ", data); */
+    var data32 uint32 = 256
+    data := new(bytes.Buffer)
+    
+    errb := binary.Write(data, binary.BigEndian, data32)
+	if errb != nil {
+		log.Println("binary.Write failed: ", errb)
+	} 
 
-	var errors = 0
+	log.Println("Before: ", data32, " After : ", data.Bytes())
+    log.Println(bus.Tx(8, data.Bytes(), nil))
+
+	/* var errors = 0
 	go func() {
 		for {
 			fmt.Println("errors:", errors)
@@ -50,7 +63,7 @@ func main() {
 		bus.Tx(8, data, nil)
 		time.Sleep(30 * time.Millisecond)
 		errors++
-	}
+	}*/
 
 	// for {
 	// 	var i byte
