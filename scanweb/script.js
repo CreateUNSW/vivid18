@@ -44,13 +44,14 @@ socket.addEventListener('message', function (event) {
 	canvas.selectAll('.data-point').remove();
 	for (let row of data) {
 		const rad = (row.a / 180) * Math.PI;
-		const distPixels = (row.d / 100) * 70;
+		const x = (row.x / 100) * 70;
+		const y = (row.y / 100) * 70;
+		console.log(row.s);
 		canvas.append('circle')
 			.attr('class', 'data-point')
 			.attr('r', 3)
-			.style('fill', 'rgba(255, 0, 0, ' + row.s / 200 + ')')
-			.attr('transform', 'translate(' + ((width / 2) +
-				Math.cos(rad) * distPixels) + ', ' +
-				((height / 2) - Math.sin(rad) * distPixels) + ')');
+			.style('fill', row.color + (row.s/200) + ')')
+			.attr('transform', 'translate(' + ((width / 2) + x) + ', ' +
+				((height / 2) + y) + ')');
 	}
 });
