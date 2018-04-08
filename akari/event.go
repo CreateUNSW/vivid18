@@ -1,0 +1,5 @@
+package akari
+
+func main() {
+
+}

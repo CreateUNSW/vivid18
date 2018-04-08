@@ -10,10 +10,10 @@
 #define NUM_CHAINS 16
 //--------------------------------------------------
 
-uint32_t data32 = 0; 
-int      data[4] = {0}; 
-DataStream pattern; 
-Codec codec; 
+uint32_t data32 = 0;
+int      data[4] = {0};
+DataStream pattern;
+Codec codec;
 
 CRGB leds[NUM_LEDS];
 
@@ -27,11 +27,11 @@ void setup() {
   // put your setup code here, to run once:
   Wire.begin(0x08);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
-//  Wire.onRequest(sendEvent); 
+//  Wire.onRequest(sendEvent);
   Serial.begin(9600);           // start serial for output
 
   Serial.println("Ready");
-  FastLED.addLeds<LED_TYPE, DATA_PIN, RBG>(leds, NUM_LEDS); 
+  FastLED.addLeds<LED_TYPE, DATA_PIN, RBG>(leds, NUM_LEDS);
 }
 
 void loop() {
@@ -54,16 +54,16 @@ void loop() {
   */
   delay(100);
   if(data[0] != 0) {
-      pattern = codec.decode(data); 
-      Serial.println(pattern.addr); 
-      Serial.println(pattern.updir); 
-      Serial.println(pattern.prior); 
-      Serial.println(pattern.pace); 
-      Serial.println(pattern.eff); 
-      Serial.println(pattern.lumA); 
-      Serial.println(pattern.colorA); 
-      Serial.println(pattern.lumB); 
-      Serial.println(pattern.colorB); 
+      pattern = codec.decode(data);
+      Serial.println(pattern.addr);
+      Serial.println(pattern.updir);
+      Serial.println(pattern.prior);
+      Serial.println(pattern.pace);
+      Serial.println(pattern.eff);
+      Serial.println(pattern.lumA);
+      Serial.println(pattern.colorA);
+      Serial.println(pattern.lumB);
+      Serial.println(pattern.colorB);
   }
   // Serial.println("tick");
 }
@@ -73,28 +73,28 @@ void loop() {
   n -> every 2 bytes (hue, lum)
 
 */
-void receiveEvent(int howMany) {  
-  Serial.println("Begin receive"); 
-  Serial.print("received: "); 
+void receiveEvent(int howMany) {
+  Serial.println("Begin receive");
+  Serial.print("received: ");
   Serial.println(howMany);
-  int i = 0; 
-  while (Wire.available()) { 
-    // data32 <<= 8; 
-    // data32 |= Wire.read(); 
+  int i = 0;
+  while (Wire.available()) {
+    // data32 <<= 8;
+    // data32 |= Wire.read();
 //    Serial.println(data32);
     if(i < howMany) {
-      data[i] = Wire.read(); 
-      i++; 
+      data[i] = Wire.read();
+      i++;
     }
   }
-  
+
   for (i = 0; i < howMany; i++) {
-    Serial.println(data[i]); 
+    Serial.println(data[i]);
   }
-  
-  
-      Serial.println("End receive"); 
-  
+
+
+      Serial.println("End receive");
+
 //  int led = 0;
 //  byte pin = Wire.read();
 //  byte numLEDs = Wire.read();
@@ -120,5 +120,5 @@ void receiveEvent(int howMany) {
 }
 
 void sendEvent() {
-  // Wire.write(4); 
+  // Wire.write(4);
 }
