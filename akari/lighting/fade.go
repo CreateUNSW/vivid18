@@ -56,8 +56,10 @@ func (f *Fade) recursiveApply(l *Linear, col color.RGBA) {
 		}
 	}
 
-	if l.Outer != nil {
-		f.recursiveApply(l.Outer, col)
+	if len(l.Outer) > 0 {
+		for _, linear := range l.Outer {
+			f.recursiveApply(linear.Linear, col)
+		}
 	}
 }
 

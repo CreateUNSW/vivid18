@@ -5,7 +5,7 @@
 // Crystals/LEDs config
 //--------------------------------------------------
 #define NUM_LEDS 23
-#define DATA_PIN 3
+#define DATA_PIN 10
 #define LED_TYPE WS2811
 #define NUM_PATTERNS 2
 //--------------------------------------------------
