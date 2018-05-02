@@ -15,8 +15,8 @@ CRGB ledA[NUM_LEDS];
 CRGB ledB[NUM_LEDS];
 
 void receive(uint16_t dest_port, uint8_t src_ip[IP_LEN], uint16_t src_port, const char *data, uint16_t len) {
-//  Serial.println("data receieved:");
-//  Serial.println(data);
+  Serial.println("data receieved!");
+  Serial.println(data);
   memcpy(leds, data, len);
   FastLED.show();
 }

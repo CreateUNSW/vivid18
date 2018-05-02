@@ -1,5 +1,5 @@
 let width = 1000;
-let height = 700;
+let height = 1000;
 let paused = false;
 
 let canvas = d3.select('body').append('svg')
@@ -91,7 +91,7 @@ function draw(data) {
 		console.log(row);
 		canvas.append('circle')
 			.attr('class', 'data-point')
-			.attr('r', 3)
+			.attr('r', 5)
 			.style('fill', row.color + 255 + ')')
 			.attr('transform', 'translate(' + ((width / 2) + x) + ', ' +
 				((height / 2) + y) + ')');

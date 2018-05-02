@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"math"
-	"os"
+	"net"
 	"sync"
 	"time"
 
@@ -13,8 +13,10 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
 	"github.com/lucasb-eyer/go-colorful"
-	"github.com/tarm/serial"
 )
+
+var conn *net.UDPConn
+var ardIP *net.UDPAddr
 
 var (
 	upgrader  = websocket.Upgrader{}
@@ -23,7 +25,6 @@ var (
 )
 
 var target int
-var ard *serial.Port
 
 type scanData struct {
 	X        int    `json:"x"`
@@ -58,7 +59,7 @@ func lightLoop() {
 		// }
 
 		circle += 5.0
-		if circle > 360 {
+		if circle >= 360 {
 			circle = 0
 		}
 
@@ -76,11 +77,20 @@ func lightLoop() {
 
 		c := colorful.Hsv(circle, 1, float64(current)/255.0)
 
-		for i := 0; i < 40; i++ {
-			r, g, b := c.RGB255()
-			ard.Write([]byte{r, g, b})
+		buf := new(bytes.Buffer)
+
+		if target < 150 {
+			for i := 0; i < 40; i++ {
+				r, g, b := c.RGB255()
+				buf.Write([]byte{r, g, b})
+			}
+		} else {
+			for i := 0; i < 40; i++ {
+				r, g, b := colorful.FastHappyColor().RGB255()
+				buf.Write([]byte{r, g, b})
+			}
 		}
-		ard.Flush()
+		conn.WriteToUDP(buf.Bytes(), ardIP)
 	}
 }
 
@@ -100,6 +110,19 @@ func main() {
 	// 	}
 	// }()
 
+	var err error
+	ardIP, err = net.ResolveUDPAddr("udp", "192.168.2.30:6969")
+	if err != nil {
+		panic(err)
+	}
+
+	myIP, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err = net.ListenUDP("udp", myIP)
+
 	e := echo.New()
 
 	dev, err := sweep.NewDevice("/dev/cu.usbserial-DO0088ZE")
@@ -107,20 +130,9 @@ func main() {
 		panic(err)
 	}
 
-	ard, err = serial.OpenPort(&serial.Config{
-		Name:        "/dev/cu.usbmodem1411",
-		Baud:        115200,
-		ReadTimeout: 10 * time.Second,
-	})
 	if err != nil {
 		panic(err)
 	}
-
-	go func() {
-		for {
-			io.Copy(os.Stdout, ard)
-		}
-	}()
 
 	fmt.Println("Stopping scan...")
 
@@ -153,7 +165,7 @@ func main() {
 			}
 			mutex.Unlock()
 
-			min := 100
+			min := 200
 			for _, res := range result {
 				dist := math.Sqrt(float64(res.X*res.X + res.Y*res.Y))
 				if dist < float64(min) {
@@ -161,7 +173,10 @@ func main() {
 				}
 			}
 
-			target = int(float64(80-(min-20)) * 3.2)
+			target = int(float64(120-(min-40)) * 2)
+			if target < 0 {
+				target = 0
+			}
 		}
 
 		mutex.Lock()
