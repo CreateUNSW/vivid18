@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	colorful "github.com/lucasb-eyer/go-colorful"
 	"github.com/pul-s4r/vivid18/akari/geo"
 )
 
@@ -46,21 +47,35 @@ func (d *Demo) Priority() int {
 
 // Run runs.
 func (d *Demo) Run(s *System) {
-	// t := time.Since(d.start).Seconds()
+	t := time.Since(d.start).Seconds()
 
 	d.data.Lock()
 	defer d.data.Unlock()
 
-	points := d.data.Within(d.loc, 300)
-	if len(points) > 0 {
-		r := math.Sqrt(float64(points[0].SquareDist(d.loc)))
+	circle := math.Mod(t*100, 360)
 
-		for _, arm := range d.fern.Arms {
-			for _, led := range arm {
-				led.R = uint8(((3.0 - r) / 3.0) * 255.0)
+	points := d.data.Within(d.loc, 300)
+	r := 300.0
+	if len(points) > 0 {
+		r = math.Sqrt(float64(points[0].SquareDist(d.loc)))
+	}
+
+	pos := math.Mod(t*(250.0-(r-50))/250.0*10, 5)
+
+	for _, arm := range d.fern.Arms {
+		for i, led := range arm {
+			if i != int(pos) {
+				led.R = 0
 				led.G = 0
 				led.B = 0
+
+				continue
 			}
+
+			r, g, b := colorful.Hsv(circle, 1, (250.0-(r-50))/250.0).RGB255()
+			led.R = r
+			led.G = g
+			led.B = b
 		}
 	}
 }

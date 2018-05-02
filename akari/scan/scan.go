@@ -3,6 +3,7 @@ package scan
 import (
 	"log"
 	"math"
+	"time"
 
 	"github.com/1lann/sweep"
 	"github.com/pul-s4r/vivid18/akari/geo"
@@ -30,6 +31,8 @@ type PointMeta struct {
 
 // SetupScanner sets up the scanner at the given path.
 func SetupScanner(path string) (*Scanner, error) {
+	return &Scanner{}, nil
+
 	dev, err := sweep.NewDevice(path)
 	if err != nil {
 		return nil, err
@@ -54,8 +57,21 @@ func SetupScanner(path string) (*Scanner, error) {
 	return &Scanner{dev, scan}, nil
 }
 
+var DebugPoint *geo.Point
+
 // ScanPeople scans people into the given map.
 func (s *Scanner) ScanPeople(crowd *geo.Map) {
+	time.Sleep(500 * time.Millisecond)
+	crowd.Lock()
+	defer crowd.Unlock()
+	crowd.Clear()
+
+	if DebugPoint != nil {
+		crowd.Add(DebugPoint)
+	}
+
+	return
+
 	var lastPoint *sweep.ScanSample
 
 	var aggregate struct {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"strconv"
 	"sync"
@@ -39,8 +38,8 @@ import (
 // }
 
 type Fern struct {
-	Location *geo.Point
-	LEDs     [8][5]*color.RGBA
+	Location *geo.Point        `json:"location"`
+	LEDs     [8][5]*color.RGBA `json:"leds"`
 }
 
 type Payload struct {
@@ -55,13 +54,13 @@ var listeners = make(map[string]chan<- *Payload)
 func main() {
 	physicalFerns := []*Fern{
 		{
-			Location: geo.NewPoint(-1, -1),
+			Location: geo.NewPoint(-150, -150),
 		},
 		{
 			Location: geo.NewPoint(0, 0),
 		},
 		{
-			Location: geo.NewPoint(1, 1),
+			Location: geo.NewPoint(150, 150),
 		},
 	}
 
@@ -116,7 +115,7 @@ func main() {
 
 	for {
 		scanner.ScanPeople(crowd)
-		fmt.Println("scan completed")
+		// fmt.Println("scan completed")
 	}
 }
 
@@ -139,6 +138,14 @@ func wsHandler(c echo.Context) error {
 		lisMutex.Lock()
 		delete(listeners, id)
 		lisMutex.Unlock()
+	}()
+
+	go func() {
+		for {
+			if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
+				return
+			}
+		}
 	}()
 
 	for scan := range lis {
