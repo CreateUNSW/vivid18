@@ -36,7 +36,7 @@ type Linear struct {
 // Fern represents a fern.
 type Fern struct {
 	Linear *Linear
-	Arms   [8][]*color.RGBA
+	Arms   [8][5]*color.RGBA
 }
 
 // TreeTop represents the lights on the top of the tree.

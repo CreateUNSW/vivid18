@@ -1,29 +1,61 @@
 package geo
 
+import (
+	"sort"
+	"sync"
+)
+
 // Map represents a map.
 type Map struct {
 	Points []*Point
+	mutex  *sync.Mutex
 }
 
 // NewMap returns a new map.
 func NewMap() *Map {
-	return &Map{}
+	return &Map{
+		mutex: new(sync.Mutex),
+	}
 }
 
-// Within returns points within a radius of p.
+// ByDistance sorts a slice of points by distance.
+type ByDistance struct {
+	slice []*Point
+	point *Point
+}
+
+// Len implements sort.Interface Len
+func (b *ByDistance) Len() int {
+	return len(b.slice)
+}
+
+// Less implements sort.Interface Less
+func (b *ByDistance) Less(i, j int) bool {
+	return b.point.SquareDist(b.slice[i]) < b.point.SquareDist(b.slice[j])
+}
+
+// Swap implements sort.Interface Swap
+func (b *ByDistance) Swap(i, j int) {
+	b.slice[i], b.slice[j] = b.slice[j], b.slice[i]
+}
+
+// Within returns points within a radius of p, sorted in
+// ascending order of distance.
 func (m *Map) Within(p *Point, r int) []*Point {
 	sqR := r * r
 	var results []*Point
 	for _, mp := range m.Points {
-		dx := (mp.X - p.X) * (mp.X - p.X)
-		if dx > sqR {
+		if mp.SquareDist(p) > sqR {
 			continue
 		}
-		if dx+(mp.Y-p.Y)*(mp.Y-p.Y) > sqR {
-			continue
-		}
+
 		results = append(results, mp)
 	}
+
+	sort.Sort(&ByDistance{
+		slice: results,
+		point: p,
+	})
 
 	return results
 }
@@ -33,10 +65,42 @@ func (m *Map) Add(p *Point) {
 	m.Points = append(m.Points, p)
 }
 
+// Lock locks the map for concurrent modification.
+func (m *Map) Lock() {
+	m.mutex.Lock()
+}
+
+// Unlock locks the map for concurrent modification.
+func (m *Map) Unlock() {
+	m.mutex.Unlock()
+}
+
+// Clear clears the map.
+func (m *Map) Clear() {
+	m.Points = make([]*Point, 0)
+}
+
 // Point represents a point.
 type Point struct {
-	X, Y int
-	Data interface{}
+	X    int         `json:"x"`
+	Y    int         `json:"y"`
+	Data interface{} `json:"data"`
+}
+
+// NewPoint returns a new point with the given parameters.
+func NewPoint(x, y int, data ...interface{}) *Point {
+	if len(data) > 0 {
+		return &Point{
+			X:    x,
+			Y:    y,
+			Data: data[0],
+		}
+	}
+
+	return &Point{
+		X: x,
+		Y: y,
+	}
 }
 
 // Add adds two points together, and inherits the data from b.
@@ -46,4 +110,9 @@ func (p *Point) Add(b *Point) *Point {
 		Y:    p.Y + b.Y,
 		Data: b.Data,
 	}
+}
+
+// SquareDist returns the squared distance between two points.
+func (p *Point) SquareDist(b *Point) int {
+	return (b.X-p.X)*(b.X-p.X) + (b.Y-p.Y)*(b.Y-p.Y)
 }
