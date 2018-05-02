@@ -33,16 +33,59 @@ canvas.append('rect')
 	.style('stroke', 'rgba(0, 0, 0, 1.0)')
 	.style('stroke-width', '1');
 
-const socket = new WebSocket('ws://127.0.0.1:9001/ws');
+//const socket = new WebSocket('ws://127.0.0.1:9001/ws');
+const numChainsPerFern = 8;
+const distBetweenLEDs = 10;
 
-socket.addEventListener('message', function (event) {
-	if (paused) {
-		return;
+var exdata = {
+	ferns: [
+		{
+			location: {x: 50, y: 50},
+			leds: [
+				[{R: 100, G: 100, B: 100}, {R: 100, G: 100, B: 100}, {R: 100, G: 150, B: 100}, {R: 100, G: 100, B: 100}],
+				[{R: 200, G: 200, B: 200}, {R: 200, G: 200, B: 200}, {R: 200, G: 200, B: 200}, {R: 200, G: 200, B: 200}],
+			]
+		},
+	],
+	sensor: [
+		{x: 100, y: 100},
+	]
+};
+
+draw(exdata);
+
+function draw(data) {
+	canvas.selectAll('.data-point').remove();
+
+	for (let fern of data.ferns) {
+		
+		const x = (fern.location.x / 100) * 70;
+		const y = (fern.location.y / 100) * 70;
+		const fernx = width / 2 + x;
+		const ferny = height / 2 + y;
+
+		console.log("Fern x y: " + x + " " + y);
+		var chainAngle = 0;
+		for (let chain of fern.leds) {
+			var r = distBetweenLEDs;
+			for (let led of chain) {
+				console.log("Ledr: " + led.r)
+				const ledx = fernx + r*Math.cos(chainAngle);
+				const ledy = ferny + r*Math.sin(chainAngle);
+				canvas.append('circle')
+					.attr('class', 'data-point')
+					.attr('r', 3)
+					.style('fill', 'rgb(' + led.R + ',' + led.G + ',' + led.B + ')')
+					.attr('transform', 'translate(' + ledx + ', ' +	ledy + ')');
+
+				r = r + distBetweenLEDs;
+			}
+			chainAngle += (2*Math.PI) / numChainsPerFern;
+		}
+		
 	}
 
-	var data = JSON.parse(event.data);
-	canvas.selectAll('.data-point').remove();
-	for (let row of data) {
+	for (let row of data.sensor) {
 		const x = (row.x / 100) * 70;
 		const y = (row.y / 100) * 70;
 		console.log(row);
@@ -53,4 +96,16 @@ socket.addEventListener('message', function (event) {
 			.attr('transform', 'translate(' + ((width / 2) + x) + ', ' +
 				((height / 2) + y) + ')');
 	}
+}
+
+/*
+socket.addEventListener('message', function (event) {
+	if (paused) {
+		return;
+	}
+
+	var data = JSON.parse(event.data);
+	draw(data);
 });
+
+*/
