@@ -1,6 +1,8 @@
 package geo
 
 import (
+	"encoding/gob"
+	"math"
 	"sort"
 	"sync"
 )
@@ -9,6 +11,10 @@ import (
 type Map struct {
 	Points []*Point
 	mutex  *sync.Mutex
+}
+
+func init() {
+	gob.Register(Map{})
 }
 
 // NewMap returns a new map.
@@ -115,4 +121,8 @@ func (p *Point) Add(b *Point) *Point {
 // SquareDist returns the squared distance between two points.
 func (p *Point) SquareDist(b *Point) int {
 	return (b.X-p.X)*(b.X-p.X) + (b.Y-p.Y)*(b.Y-p.Y)
+}
+
+func (p *Point) Angle(b *Point) float64 {
+	return math.Atan(float64(b.Y-p.Y)/float64(b.X-p.X)) + math.Pi
 }

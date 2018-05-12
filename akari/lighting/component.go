@@ -18,19 +18,32 @@ type LinearOnLinear struct {
 // Linear represents a linear chain of lights.
 //
 // The start of a Linear chain will ALWAYS be at Inner, that is, address 0
-// when Linear is used is ALWAYS towards Inner. This is automatically remapped
-// if the physical light does not conform to this using startInner.
+// when Linear is used is ALWAYS towards Inner.
 type Linear struct {
-	ID    int
 	Outer []LinearOnLinear // Linear node that is going away from the tree.
 	Inner *Linear          // Linear node that is going towards the tree.
 	Ferns []FernOnLinear
 
 	// Mapping of LEDs on the chain. This is cleared on every Run().
 	LEDs []*color.RGBA
+}
 
-	// Determines address mapping.
-	startInner bool
+// AddFern adds a fern to linear.
+func (l *Linear) AddFern(f *Fern, location int) {
+	f.Linear = l
+	l.Ferns = append(l.Ferns, FernOnLinear{
+		Location: location,
+		Fern:     f,
+	})
+}
+
+// AddOuter adds an outer linear to linear.
+func (l *Linear) AddOuter(outer *Linear, location int) {
+	outer.Inner = l
+	l.Outer = append(l.Outer, LinearOnLinear{
+		Location: location,
+		Linear:   outer,
+	})
 }
 
 // Fern represents a fern.

@@ -56,13 +56,22 @@ func (d *Demo) Run(s *System) {
 
 	points := d.data.Within(d.loc, 300)
 	r := 300.0
+	dir := 0
 	if len(points) > 0 {
 		r = math.Sqrt(float64(points[0].SquareDist(d.loc)))
+		dir = int(d.loc.Angle(points[0]) / (math.Pi / 4.0))
 	}
 
-	pos := math.Mod(t*(250.0-(r-50))/250.0*10, 5)
+	pos := math.Mod(t*3, 5)
+	intensity := (250.0 - (r - 50)) / 250.0
+	if intensity > 1 {
+		intensity = 1
+	}
 
-	for _, arm := range d.fern.Arms {
+	for ar, arm := range d.fern.Arms {
+		if ar != dir {
+			continue
+		}
 		for i, led := range arm {
 			if i != int(pos) {
 				led.R = 0
@@ -72,7 +81,7 @@ func (d *Demo) Run(s *System) {
 				continue
 			}
 
-			r, g, b := colorful.Hsv(circle, 1, (250.0-(r-50))/250.0).RGB255()
+			r, g, b := colorful.Hsv(circle, 1, intensity).RGB255()
 			led.R = r
 			led.G = g
 			led.B = b

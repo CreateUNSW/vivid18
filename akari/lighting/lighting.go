@@ -40,8 +40,8 @@ func (s *System) RemoveEffect(id string) {
 	delete(s.RunningEffects, id)
 }
 
-// RunEffects runs all of the effects in the system.
-func (s *System) RunEffects() {
+// Run runs all of the effects in the system.
+func (s *System) Run() {
 	for key, effect := range s.RunningEffects {
 		if effect.Deadline().Before(time.Now()) {
 			delete(s.RunningEffects, key)

@@ -104,6 +104,7 @@ socket.addEventListener('message', function (event) {
 	}
 
 	var data = JSON.parse(event.data);
+	console.log(data);
 	draw(data);
 });
 

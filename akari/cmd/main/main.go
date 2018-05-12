@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"strconv"
 	"sync"
@@ -11,31 +12,9 @@ import (
 	"github.com/labstack/echo"
 	"github.com/pul-s4r/vivid18/akari/geo"
 	"github.com/pul-s4r/vivid18/akari/lighting"
+	"github.com/pul-s4r/vivid18/akari/mapping"
 	"github.com/pul-s4r/vivid18/akari/scan"
 )
-
-// {
-// 	ferns: [
-// 		{
-// 			location: {x:, y:},
-// 			leds: [
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 				[{r:, g:, b:}, ...],
-// 			]
-// 		},
-// 		...
-// 	],
-// 	sensor: [
-// 		{x:, y:},
-// 		...
-// 	]
-// }
 
 type Fern struct {
 	Location *geo.Point        `json:"location"`
@@ -52,33 +31,43 @@ var lisMutex = new(sync.Mutex)
 var listeners = make(map[string]chan<- *Payload)
 
 func main() {
+	system := lighting.NewSystem()
+
+	devices := []*mapping.Device{
+		mapping.NewDevice(10, 2),
+		mapping.NewDevice(11, 1),
+		mapping.NewDevice(12, 1),
+	}
+
+	mapSystem(system, devices)
+
 	physicalFerns := []*Fern{
-		{
-			Location: geo.NewPoint(-150, -150),
-		},
+		// {
+		// 	Location: geo.NewPoint(-150, -150),
+		// 	LEDs:     system.Root[0].Ferns[0].Fern.Arms,
+		// },
 		{
 			Location: geo.NewPoint(0, 0),
+			LEDs:     system.Root[0].Ferns[1].Fern.Arms,
 		},
-		{
-			Location: geo.NewPoint(150, 150),
-		},
+		// {
+		// 	Location: geo.NewPoint(150, 150),
+		// 	LEDs:     system.Root[0].Ferns[2].Fern.Arms,
+		// },
 	}
 
 	var ferns []*lighting.Fern
 
 	crowd := geo.NewMap()
-	system := lighting.NewSystem()
 
 	for fernID, fern := range physicalFerns {
-		for i := 0; i < len(fern.LEDs); i++ {
-			for j := 0; j < len(fern.LEDs[i]); j++ {
-				fern.LEDs[i][j] = &color.RGBA{}
-			}
-		}
+		// for i := 0; i < len(fern.LEDs); i++ {
+		// 	for j := 0; j < len(fern.LEDs[i]); j++ {
+		// 		fern.LEDs[i][j] = &color.RGBA{}
+		// 	}
+		// }
 
-		f := &lighting.Fern{
-			Arms: fern.LEDs,
-		}
+		f := system.Root[0].Ferns[1].Fern
 		ferns = append(ferns, f)
 
 		system.AddEffect(strconv.Itoa(fernID),
@@ -88,6 +77,7 @@ func main() {
 	go func() {
 		for range time.Tick(30 * time.Millisecond) {
 			system.Run()
+			devices[1].Render()
 			crowd.Lock()
 			payload := &Payload{
 				Ferns:  physicalFerns,
@@ -113,10 +103,28 @@ func main() {
 		e.Start(":9000")
 	}()
 
+	fmt.Println("lol")
+
 	for {
 		scanner.ScanPeople(crowd)
 		// fmt.Println("scan completed")
 	}
+}
+
+func mapSystem(system *lighting.System, devices []*mapping.Device) {
+	north := &lighting.Linear{
+		Outer: nil,
+		Inner: nil,
+		LEDs:  make([]*color.RGBA, 50),
+	}
+
+	system.Root = append(system.Root, north)
+	copy(north.LEDs, devices[0].LEDs[1][:])
+
+	north.AddFern(devices[0].AsFern(), 0)
+	north.AddFern(devices[1].AsFern(), 15)
+	north.AddFern(devices[2].AsFern(), 30)
+	// system.Root = append(system.Root, &Linear{})
 }
 
 func wsHandler(c echo.Context) error {
@@ -140,13 +148,13 @@ func wsHandler(c echo.Context) error {
 		lisMutex.Unlock()
 	}()
 
-	// go func() {
-	// 	for {
-	// 		if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
-	// 			return
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		for {
+			if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
+				return
+			}
+		}
+	}()
 
 	for scan := range lis {
 		if err := ws.WriteJSON(scan); err != nil {
