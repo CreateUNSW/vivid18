@@ -54,7 +54,7 @@ func runAVR(path string) <-chan AVRState {
 			go func() {
 				time.Sleep(3 * time.Second)
 				if state == StateStarted {
-					logger.Error("The Arduino is not responding, try reconnecting it")
+					logger.Error("The Arduino may not be responding, try reconnecting it")
 					cancel()
 				}
 			}()

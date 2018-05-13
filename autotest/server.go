@@ -8,7 +8,7 @@ import (
 )
 
 var serverConn *net.UDPConn
-var serverRunning int32
+var serverRunning int32 = 1
 
 var standardPacket []byte
 var ackPacket []byte

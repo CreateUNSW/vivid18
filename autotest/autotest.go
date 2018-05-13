@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/1lann/snio"
+	"github.com/djherbis/buffer"
 	"github.com/tarm/serial"
 
 	"github.com/Sirupsen/logrus"
@@ -17,6 +19,7 @@ var logger = logrus.New()
 
 // var port *term.Term
 var port *serial.Port
+var reader io.ReadCloser
 
 func init() {
 	logger.Formatter = &logrus.TextFormatter{}
@@ -28,7 +31,7 @@ func expect(words ...string) {
 		input[i] = new(string)
 	}
 
-	_, err := fmt.Fscan(port, input...)
+	_, err := fmt.Fscan(reader, input...)
 	if err != nil {
 		logger.WithError(err).Fatal("Communication error with Arduino")
 	}
@@ -46,9 +49,9 @@ func expect(words ...string) {
 
 func isOK(allowTimeout bool) (bool, string) {
 	var result, msg string
-	_, err := fmt.Fscan(port, &result, &msg)
+	_, err := fmt.Fscan(reader, &result, &msg)
 	if err != nil {
-		if allowTimeout && err == io.EOF {
+		if err == snio.ErrTimeout {
 			return false, "TIMEOUT"
 		}
 
@@ -77,11 +80,14 @@ func networkTest(ardIP net.IP) bool {
 		switch msg {
 		case "TIMEOUT", "BEGIN":
 			logger.Error("Could not communicate with Ethernet card")
-			logger.Error("The Ethernet card may be not connected correctly or faulty")
+			logger.Error("The Ethernet card may be not connected correctly or it may be faulty")
 		case "SETUP":
 			logger.Error("Invalid IP addresses provided")
 		case "LINK":
 			logger.Error("No Ethernet link detected, is the Ethernet cable plugged in correctly?")
+		case "ARP":
+			logger.Error("The Arduino could not resolve the MAC address of the comptuter")
+			logger.Error("This is possibly due to a network misconfiguration")
 		default:
 			logger.WithField("response", msg).Error("There was a problem starting the Ethernet driver")
 		}
@@ -112,7 +118,7 @@ func networkTest(ardIP net.IP) bool {
 	time.Sleep(3 * time.Second)
 
 	var numPackets int
-	_, err := fmt.Fscan(port, &numPackets)
+	_, err := fmt.Fscan(reader, &numPackets)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to get network test results")
 	}
@@ -148,6 +154,56 @@ func networkTest(ardIP net.IP) bool {
 	}
 
 	return pass
+}
+
+func flash(ardPath string) bool {
+	logger.Info("Preparing to flash Arduino...")
+
+	ready := false
+
+	go func() {
+		time.Sleep(3 * time.Second)
+		if !ready {
+			logger.Fatal("Another process is blocking IO access, reconnect the Arduino")
+		}
+	}()
+
+	port, err := serial.OpenPort(&serial.Config{
+		Name: ardPath,
+		Baud: 1200,
+	})
+
+	if err != nil {
+		logger.WithError(err).Error("Failed to open Arduino port")
+		ready = true
+		return false
+	}
+	port.Close()
+
+	ready = true
+
+	time.Sleep(time.Second)
+
+	stateChan := runAVR(ardPath)
+	for state := range stateChan {
+		switch state.State {
+		case StateConnected:
+			logger.Info("Connected to Arduino")
+		case StateWriting:
+			logger.Info("Flashing autotest firmware...")
+		case StateVerifying:
+			logger.Info("Verifying flash...")
+		case StateFinished:
+			logger.Info("Autotest firmware flashed!")
+		case StateError:
+			logger.Error("Failed to flash firmware, details are as follows")
+			fmt.Println(state.Message)
+			// logger.Fatal("End of error log")
+			return false
+		}
+	}
+
+	return true
 }
 
 func pinTest() bool {
@@ -201,7 +257,7 @@ func main() {
 	}
 
 	hostIP := net.IPv4(192, 168, 2, 1)
-	ardIP := net.IPv4(192, 168, 2, 11)
+	ardIP := net.IPv4(192, 168, 2, 10)
 
 	found := false
 	for _, addr := range addrs {
@@ -242,50 +298,24 @@ func main() {
 	}
 
 	logger.WithField("path", ardPath).Info("Arduino found")
-	fmt.Print("Confirm this is the correct path (y/n)? ")
-	var answer string
-	fmt.Scan(&answer)
-	if strings.Contains(strings.ToLower(answer), "n") {
-		logger.Fatal("Confirmation rejected")
-	}
+	// fmt.Print("Confirm this is the correct path (y/n)? ")
+	// var answer string
+	// fmt.Scan(&answer)
+	// if strings.Contains(strings.ToLower(answer), "n") {
+	// 	logger.Fatal("Confirmation rejected")
+	// }
 
-	logger.Info("Preparing to flash Arduino...")
-
-	ready := false
-
-	go func() {
-		time.Sleep(3 * time.Second)
-		if !ready {
-			logger.Fatal("Another process is blocking IO access, reconnect the Arduino")
+	for i := 0; i < 3; i++ {
+		if flash(ardPath) {
+			break
 		}
-	}()
 
-	port, err = serial.OpenPort(&serial.Config{
-		Name: ardPath,
-		Baud: 1200,
-	})
-	port.Close()
-
-	ready = true
-
-	time.Sleep(time.Second)
-
-	stateChan := runAVR(ardPath)
-	for state := range stateChan {
-		switch state.State {
-		case StateConnected:
-			logger.Info("Connected to Arduino")
-		case StateWriting:
-			logger.Info("Flashing autotest firmware...")
-		case StateVerifying:
-			logger.Info("Verifying flash...")
-		case StateFinished:
-			logger.Info("Autotest firmware flashed!")
-		case StateError:
-			logger.Error("Failed to flash firmware, details are as follows")
-			fmt.Println(state.Message)
-			logger.Fatal("End of error log")
+		if i == 2 {
+			logger.Fatal("Failed to flash autotest firmware after 3 attempts")
 		}
+
+		logger.Warn("Flash failed, retrying...")
+		time.Sleep(2 * time.Second)
 	}
 
 	logger.Info("Waiting for boot...")
@@ -296,13 +326,26 @@ func main() {
 	//
 	logger.Info("Connecting to autotest firmware....")
 
-	port, err = serial.OpenPort(&serial.Config{
-		Name:        ardPath,
-		Baud:        115200,
-		ReadTimeout: 3 * time.Second,
-	})
-	if err != nil {
-		logger.WithError(err).Fatal("Failed to open Arduino port")
+	for i := 0; i < 3; i++ {
+		port, err = serial.OpenPort(&serial.Config{
+			Name:        ardPath,
+			Baud:        115200,
+			ReadTimeout: time.Second,
+		})
+		if err != nil {
+			if i == 2 {
+				logger.WithError(err).Fatal("Failed to open Arduino port after 3 attempts")
+			}
+
+			logger.WithError(err).Warn("Failed to open Arduino port, retrying...")
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		buf := buffer.New(1024)
+		reader = snio.NewReader(port, buf, 6*time.Second)
+
+		break
 	}
 
 	port.Write([]byte{'\n'})
@@ -311,6 +354,7 @@ func main() {
 	expect("HELLO")
 
 	logger.Info("Serial connection established with autotest firmware")
+	time.Sleep(time.Second)
 
 	port.Write([]byte{'\n'})
 	port.Flush()
