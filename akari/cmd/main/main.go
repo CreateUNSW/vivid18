@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"strconv"
 	"sync"
@@ -34,26 +33,21 @@ func main() {
 	system := lighting.NewSystem()
 
 	devices := []*mapping.Device{
-		mapping.NewDevice(10, 2),
 		mapping.NewDevice(11, 1),
-		mapping.NewDevice(12, 1),
+		mapping.NewDevice(10, 2),
 	}
 
 	mapSystem(system, devices)
 
 	physicalFerns := []*Fern{
-		// {
-		// 	Location: geo.NewPoint(-150, -150),
-		// 	LEDs:     system.Root[0].Ferns[0].Fern.Arms,
-		// },
 		{
-			Location: geo.NewPoint(0, 0),
+			Location: geo.NewPoint(0, -140),
+			LEDs:     system.Root[0].Ferns[0].Fern.Arms,
+		},
+		{
+			Location: geo.NewPoint(-170, -170),
 			LEDs:     system.Root[0].Ferns[1].Fern.Arms,
 		},
-		// {
-		// 	Location: geo.NewPoint(150, 150),
-		// 	LEDs:     system.Root[0].Ferns[2].Fern.Arms,
-		// },
 	}
 
 	var ferns []*lighting.Fern
@@ -67,16 +61,17 @@ func main() {
 		// 	}
 		// }
 
-		f := system.Root[0].Ferns[1].Fern
+		f := system.Root[0].Ferns[fernID].Fern
 		ferns = append(ferns, f)
 
 		system.AddEffect(strconv.Itoa(fernID),
-			lighting.NewDemo(f, crowd, fern.Location))
+			lighting.NewBlob(f, crowd, fern.Location, 310, 120))
 	}
 
 	go func() {
 		for range time.Tick(30 * time.Millisecond) {
 			system.Run()
+			devices[0].Render()
 			devices[1].Render()
 			crowd.Lock()
 			payload := &Payload{
@@ -103,8 +98,6 @@ func main() {
 		e.Start(":9000")
 	}()
 
-	fmt.Println("lol")
-
 	for {
 		scanner.ScanPeople(crowd)
 		// fmt.Println("scan completed")
@@ -119,11 +112,10 @@ func mapSystem(system *lighting.System, devices []*mapping.Device) {
 	}
 
 	system.Root = append(system.Root, north)
-	copy(north.LEDs, devices[0].LEDs[1][:])
+	// copy(north.LEDs, devices[0].LEDs[1][:])
 
-	north.AddFern(devices[0].AsFern(), 0)
-	north.AddFern(devices[1].AsFern(), 15)
-	north.AddFern(devices[2].AsFern(), 30)
+	north.AddFern(devices[0].AsFern(4), 0)
+	north.AddFern(devices[1].AsFern(0), 15)
 	// system.Root = append(system.Root, &Linear{})
 }
 

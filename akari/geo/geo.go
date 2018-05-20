@@ -109,7 +109,7 @@ func NewPoint(x, y int, data ...interface{}) *Point {
 	}
 }
 
-// Add adds two points together, and inherits the data from b.
+// Add adds two points together into a new point, and inherits the data from b.
 func (p *Point) Add(b *Point) *Point {
 	return &Point{
 		X:    p.X + b.X,
@@ -123,6 +123,7 @@ func (p *Point) SquareDist(b *Point) int {
 	return (b.X-p.X)*(b.X-p.X) + (b.Y-p.Y)*(b.Y-p.Y)
 }
 
+// Angle returns the angle from b relative to p in radians.
 func (p *Point) Angle(b *Point) float64 {
 	return math.Atan(float64(b.Y-p.Y)/float64(b.X-p.X)) + math.Pi
 }

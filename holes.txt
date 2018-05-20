@@ -1,0 +1,10 @@
+ID #Holes
+84 8
+41 6
+31 9 (extra to tree and 81)
+21 8 (extra to tree)
+10 8
+9  9 (network distribution box)
+72 4
+63 7
+52 4

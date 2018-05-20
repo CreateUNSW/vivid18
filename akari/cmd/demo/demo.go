@@ -82,7 +82,7 @@ func main() {
 		ferns = append(ferns, f)
 
 		system.AddEffect(strconv.Itoa(fernID),
-			lighting.NewDemo(f, crowd, fern.Location))
+			lighting.NewBlob(f, crowd, fern.Location, 270, 180))
 	}
 
 	go func() {
@@ -140,13 +140,13 @@ func wsHandler(c echo.Context) error {
 		lisMutex.Unlock()
 	}()
 
-	// go func() {
-	// 	for {
-	// 		if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
-	// 			return
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		for {
+			if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
+				return
+			}
+		}
+	}()
 
 	for scan := range lis {
 		if err := ws.WriteJSON(scan); err != nil {

@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/1lann/rpc"
@@ -24,7 +23,7 @@ func main() {
 			geoMap := geo.NewMap()
 			scanner.ScanPeople(geoMap)
 			if client != nil {
-				client.Do("scan-1", geoMap)
+				client.Fire("scan-1", geoMap)
 			}
 		}
 	}()
@@ -42,7 +41,7 @@ func main() {
 			log.Println(err)
 			time.Sleep(3 * time.Second)
 			continue
-		]
+		}
 
 		err = client.Receive()
 		if err != nil {

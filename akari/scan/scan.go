@@ -2,7 +2,7 @@ package scan
 
 import (
 	"encoding/gob"
-	"log"
+	"math"
 	"time"
 
 	"github.com/1lann/sweep"
@@ -35,43 +35,43 @@ func init() {
 
 // SetupScanner sets up the scanner at the given path.
 func SetupScanner(path string) (*Scanner, error) {
-	return &Scanner{}, nil
+	return nil, nil
 
-	dev, err := sweep.NewDevice(path)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println("Setting up...")
-	// dev.Reset()
-	// log.Println(dev.Reset())
-	// dev.Close()
-
-	// time.Sleep(20 * time.Second)
-	// fmt.Println("Starting...")
-
-	// dev, err = sweep.NewDevice(path)
+	// dev, err := sweep.NewDevice(path)
 	// if err != nil {
 	// 	return nil, err
 	// }
 
-	dev.StopScan()
-	dev.Drain()
-	dev.WaitUntilMotorReady()
-	dev.SetMotorSpeed(2)
+	// log.Println("Setting up...")
+	// // dev.Reset()
+	// // log.Println(dev.Reset())
+	// // dev.Close()
+
+	// // time.Sleep(20 * time.Second)
+	// // fmt.Println("Starting...")
+
+	// // dev, err = sweep.NewDevice(path)
+	// // if err != nil {
+	// // 	return nil, err
+	// // }
+
+	// dev.StopScan()
+	// dev.Drain()
 	// dev.WaitUntilMotorReady()
+	// dev.SetMotorSpeed(2)
+	// // dev.WaitUntilMotorReady()
 	// dev.SetSampleRate(sweep.Rate500)
 	// fmt.Println("Waiting ready")
-	log.Println(dev.WaitUntilMotorReady())
-	log.Println(dev.WaitUntilMotorReady())
-	log.Println("Set up!")
+	// log.Println(dev.WaitUntilMotorReady())
+	// log.Println(dev.WaitUntilMotorReady())
+	// log.Println("Set up!")
 
-	scan, err := dev.StartScan()
-	if err != nil {
-		return nil, err
-	}
+	// scan, err := dev.StartScan()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return &Scanner{dev, scan}, nil
+	// return &Scanner{dev, scan}, nil
 }
 
 var DebugPoint *geo.Point
@@ -89,79 +89,79 @@ func (s *Scanner) ScanPeople(crowd *geo.Map) {
 
 	return
 
-	// var lastPoint *sweep.ScanSample
+	var lastPoint *sweep.ScanSample
 
-	// var aggregate struct {
-	// 	startAngle float64
-	// 	startDist  int
+	var aggregate struct {
+		startAngle float64
+		startDist  int
 
-	// 	count    int
-	// 	strength int
-	// 	sumX     float64
-	// 	sumY     float64
-	// }
+		count    int
+		strength int
+		sumX     float64
+		sumY     float64
+	}
 
-	// scan := <-s.scan
-	// crowd.Lock()
-	// defer crowd.Unlock()
-	// crowd.Clear()
+	scan := <-s.scan
+	crowd.Lock()
+	defer crowd.Unlock()
+	crowd.Clear()
 
-	// for _, point := range scan {
-	// 	if lastPoint == nil {
-	// 		aggregate.count = 1
-	// 		aggregate.strength = int(point.SignalStrength)
-	// 		aggregate.sumX, aggregate.sumY = point.Cartesian()
-	// 		aggregate.startDist = point.Distance
-	// 		aggregate.startAngle = point.Rad()
-	// 		lastPoint = point
-	// 		continue
-	// 	}
+	for _, point := range scan {
+		if lastPoint == nil {
+			aggregate.count = 1
+			aggregate.strength = int(point.SignalStrength)
+			aggregate.sumX, aggregate.sumY = point.Cartesian()
+			aggregate.startDist = point.Distance
+			aggregate.startAngle = point.Rad()
+			lastPoint = point
+			continue
+		}
 
-	// 	if abs(point.Distance-lastPoint.Distance) > maxDiff ||
-	// 		math.Abs(lastPoint.Rad()-point.Rad())*float64(point.Distance) > maxArc ||
-	// 		abs(point.Distance-aggregate.startDist) > maxTotalDiff ||
-	// 		math.Abs(point.Rad()-aggregate.startAngle)*float64(point.Distance) > maxTotalWidth {
-	// 		// fmt.Println(aggregate.count)
-	// 		if distComp-(lastPoint.Distance/100) < aggregate.count {
-	// 			crowd.Add(geo.NewPoint(
-	// 				int(aggregate.sumX/float64(aggregate.count)),
-	// 				int(aggregate.sumY/float64(aggregate.count)),
-	// 				&PointMeta{
-	// 					Strength: aggregate.strength / aggregate.count,
-	// 				},
-	// 			))
-	// 		}
+		if abs(point.Distance-lastPoint.Distance) > maxDiff ||
+			math.Abs(lastPoint.Rad()-point.Rad())*float64(point.Distance) > maxArc ||
+			abs(point.Distance-aggregate.startDist) > maxTotalDiff ||
+			math.Abs(point.Rad()-aggregate.startAngle)*float64(point.Distance) > maxTotalWidth {
+			// fmt.Println(aggregate.count)
+			if distComp-(lastPoint.Distance/100) < aggregate.count {
+				crowd.Add(geo.NewPoint(
+					int(aggregate.sumX/float64(aggregate.count)),
+					int(aggregate.sumY/float64(aggregate.count)),
+					&PointMeta{
+						Strength: aggregate.strength / aggregate.count,
+					},
+				))
+			}
 
-	// 		aggregate.count = 1
-	// 		aggregate.strength = int(point.SignalStrength)
-	// 		aggregate.sumX, aggregate.sumY = point.Cartesian()
-	// 		aggregate.startDist = point.Distance
-	// 		aggregate.startAngle = point.Rad()
-	// 		lastPoint = point
-	// 		continue
-	// 	}
+			aggregate.count = 1
+			aggregate.strength = int(point.SignalStrength)
+			aggregate.sumX, aggregate.sumY = point.Cartesian()
+			aggregate.startDist = point.Distance
+			aggregate.startAngle = point.Rad()
+			lastPoint = point
+			continue
+		}
 
-	// 	// fmt.Println("diff:", math.Abs(lastPoint.Angle-point.Angle), float64(point.Distance))
+		// fmt.Println("diff:", math.Abs(lastPoint.Angle-point.Angle), float64(point.Distance))
 
-	// 	aggregate.count++
-	// 	x, y := point.Cartesian()
-	// 	aggregate.sumX += x
-	// 	aggregate.sumY += y
-	// 	aggregate.strength += int(point.SignalStrength)
-	// 	lastPoint = point
-	// }
+		aggregate.count++
+		x, y := point.Cartesian()
+		aggregate.sumX += x
+		aggregate.sumY += y
+		aggregate.strength += int(point.SignalStrength)
+		lastPoint = point
+	}
 
-	// // fmt.Println("strength:", aggregate.strength)
+	// fmt.Println("strength:", aggregate.strength)
 
-	// if distComp-(lastPoint.Distance/100) < aggregate.count {
-	// 	crowd.Add(geo.NewPoint(
-	// 		int(aggregate.sumX/float64(aggregate.count)),
-	// 		int(aggregate.sumY/float64(aggregate.count)),
-	// 		&PointMeta{
-	// 			Strength: aggregate.strength / aggregate.count,
-	// 		},
-	// 	))
-	// }
+	if distComp-(lastPoint.Distance/100) < aggregate.count {
+		crowd.Add(geo.NewPoint(
+			int(aggregate.sumX/float64(aggregate.count)),
+			int(aggregate.sumY/float64(aggregate.count)),
+			&PointMeta{
+				Strength: aggregate.strength / aggregate.count,
+			},
+		))
+	}
 }
 
 func abs(a int) int {
