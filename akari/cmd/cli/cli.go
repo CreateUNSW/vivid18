@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
+	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
 // Ports used
@@ -51,11 +53,18 @@ func discoverDaemon() {
 }
 
 func lightUpdater() {
+	h := 0.0
 	for range time.Tick(33 * time.Millisecond) {
+		c := colorful.Hsl(h, 1.0, 0.5)
+		h = math.Mod(h+3, 360.0)
+
 		colorMutex.Lock()
-		for device, c := range colors {
+		for device := range colors {
+
+			r, g, b := c.RGB255()
+
 			dest := net.IPv4(192, 168, 2, device)
-			listener.WriteToUDP(bytes.Repeat(c, 70*4), &net.UDPAddr{
+			listener.WriteToUDP(bytes.Repeat([]byte{r, g, b}, 90*4), &net.UDPAddr{
 				IP:   dest,
 				Port: DevicePort,
 			})

@@ -25,17 +25,19 @@ possible implementation:
 package lighting
 
 import (
+	"github.com/lucasb-eyer/go-colorful"
 	"image/color"
+	"math"
 	"time"
 )
 
 // Neural represents a neural effect.
 type Neural struct {
-	priority int
-	active   bool
-	start    time.Time
-	color    color.Color
-	startFern     *Fern
+	priority  int
+	active    bool
+	start     time.Time
+	color     color.Color
+	startFern *Fern
 }
 
 // NeuralStepTime represents the amount of time it takes for the neural pulse to move
@@ -45,17 +47,17 @@ const NeuralStepTime = 50 * time.Millisecond
 // NewNeural returns a new Neural effect.
 func NewNeural(col color.Color, startFern *Fern, priority int) *Neural {
 	return &Neural{
-		priority: priority,
-		start:    time.Now(),
-		active:   true,
-		color:    col,
-		startFern:     startFern,
+		priority:  priority,
+		start:     time.Now(),
+		active:    true,
+		color:     col,
+		startFern: startFern,
 	}
 }
 
 // Active returns whether or not the effect is still active.
 func (n *Neural) Active() bool {
-	return n.active
+	return time.Since(start) < (5 * time.Second)
 }
 
 // Start returns the start time of the Neural effect.
@@ -73,11 +75,37 @@ func (n *Neural) Priority() int {
 	return n.priority
 }
 
-func (n *Neural)
+func (n *Neural) f(x int) float64 {
+	steps := time.Since(n.start) / NeuralStepTime
+	steps -= math.Pi
+
+	if math.Abs(float64(x)-steps) > math.Pi {
+		return 0
+	}
+
+	return math.Sin(float64(x)+(math.Pi/2)) + 1
+}
+
+func (n *Neural) runFern(d int, f *Fern) {
+	for i := 0; i < len(f.Arms[0]); i++ {
+		for _, arm := range f.Arms {
+			color.
+			arm[i].
+		}
+	}
+	f.Arms
+}
+
+func (n *Neural) getColor(d int) color.Color {
+	310, 120
+	colorful.Hcl(310, 1.0, 0.5).BlendHcl(col2 colorful.Color, t float64)
+}
 
 // Run runs.
 func (n *Neural) Run(s *System) {
-	n.startFern.Linear
+	n.startFern
+
+	for _,
 
 	r, g, b, _ := n.color.RGBA()
 	col := color.RGBA{

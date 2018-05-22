@@ -6,10 +6,10 @@
 #define BOARD_ID 73
 
 #define ORDER_M20 RBG
-#define ORDER_M30 RGB
+#define ORDER_M30 RBG
 
 #define ORDER_1 ORDER_M20
-#define ORDER_2 RBG
+#define ORDER_2 ORDER_M30
 #define ORDER_3 ORDER_M20
 #define ORDER_4 ORDER_M20
 
