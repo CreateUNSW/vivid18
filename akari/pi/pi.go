@@ -10,12 +10,16 @@ import (
 	"github.com/pul-s4r/vivid18/akari/scan"
 )
 
-const id = "1"
+const (
+	id       = "1"
+	minAngle = 100
+	maxAngle = 200
+)
 
 var client *rpc.Client
 
 func main() {
-	scanner, err := scan.SetupScanner("lol")
+	scanner, err := scan.SetupScanner("lol", minAngle, maxAngle)
 	if err != nil {
 		panic(err)
 	}

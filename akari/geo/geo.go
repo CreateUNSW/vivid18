@@ -74,10 +74,15 @@ func (m *Map) Add(p *Point) {
 // Merge merges the given map into the map with an optional linear translation.
 func (m *Map) Merge(b *Map, trans ...*Point) {
 	for _, p := range b.Points {
+		t := p
+		if len(trans) > 0 {
+			t = p.Add(trans[0])
+		}
+
 		m.Add(&Point{
-			X: p.Add(b *Point),
-			Y: ,
-			Data: b.Data,
+			X:    t.X,
+			Y:    t.Y,
+			Data: p.Data,
 		})
 	}
 }

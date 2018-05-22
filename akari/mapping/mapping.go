@@ -31,11 +31,16 @@ func init() {
 type Device struct {
 	ID   int
 	Addr *net.UDPAddr
-	LEDs [][50]*color.RGBA
+	LEDs [][]*color.RGBA
+}
+
+// NewStandardDevice is shorthand for NewDevice(id, []int{50, 60}).
+func NewStandardDevice(id int) *Device {
+	return NewDevice(id, []int{50, 60})
 }
 
 // NewDevice initializes and returns a new device given its address.
-func NewDevice(id int, numChains int) *Device {
+func NewDevice(id int, chains []int) *Device {
 	if id >= 255 || id <= 0 {
 		panic("device: NewDevice: id out of range")
 	}
@@ -48,13 +53,15 @@ func NewDevice(id int, numChains int) *Device {
 	d := &Device{
 		ID:   id,
 		Addr: remoteAddr,
-		LEDs: make([][50]*color.RGBA, numChains),
 	}
 
-	for i := 0; i < numChains; i++ {
-		for j := 0; j < len(d.LEDs[i]); j++ {
-			d.LEDs[i][j] = &color.RGBA{}
+	for _, chain := range chains {
+		ch := make([]*color.RGBA, chain)
+		for i := range ch {
+			ch[i] = &color.RGBA{}
 		}
+
+		d.LEDs = append(d.LEDs, ch)
 	}
 
 	return d
