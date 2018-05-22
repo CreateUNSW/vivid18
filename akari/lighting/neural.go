@@ -32,10 +32,10 @@ import (
 // Neural represents a neural effect.
 type Neural struct {
 	priority int
+	active   bool
 	start    time.Time
-	deadline time.Time
 	color    color.Color
-	fern     *Fern
+	startFern     *Fern
 }
 
 // NeuralStepTime represents the amount of time it takes for the neural pulse to move
@@ -43,23 +43,19 @@ type Neural struct {
 const NeuralStepTime = 50 * time.Millisecond
 
 // NewNeural returns a new Neural effect.
-func NewNeural(col color.Color, duration time.Duration, fern *Fern, priority int) 
-*Neural {
-
-    parentChain := fern.Linear
-    var parentLocation int
-    for _, f := range parentChain.Ferns {
-        if f.Fern == fern {
-            parentLocation = f.Location
-        }
-    }
+func NewNeural(col color.Color, startFern *Fern, priority int) *Neural {
 	return &Neural{
 		priority: priority,
-		deadline: time.Now().Add(duration),
 		start:    time.Now(),
+		active:   true,
 		color:    col,
-		fern:     fern,
+		startFern:     startFern,
 	}
+}
+
+// Active returns whether or not the effect is still active.
+func (n *Neural) Active() bool {
+	return n.active
 }
 
 // Start returns the start time of the Neural effect.
@@ -77,33 +73,11 @@ func (n *Neural) Priority() int {
 	return n.priority
 }
 
-func (n *Neural) recursiveApply(l *Linear, col color.RGBA) {
-	for _, led := range l.LEDs {
-		led.R = col.R
-		led.G = col.G
-		led.B = col.B
-	}
-
-	for _, fern := range l.Ferns {
-		for _, arm := range fern.Fern.Arms {
-			for _, led := range arm {
-				led.R = col.R
-				led.G = col.G
-				led.B = col.B
-			}
-		}
-	}
-
-	if len(l.Outer) > 0 {
-		for _, linear := range l.Outer {
-			n.recursiveApply(linear.Linear, col)
-		}
-	}
-}
+func (n *Neural)
 
 // Run runs.
 func (n *Neural) Run(s *System) {
-	progress := float64(time.Since(n.start)) / float64(n.deadline.Sub(n.start))
+	n.startFern.Linear
 
 	r, g, b, _ := n.color.RGBA()
 	col := color.RGBA{
@@ -116,5 +90,3 @@ func (n *Neural) Run(s *System) {
 		n.recursiveApply(l, col)
 	}
 }
-
-

@@ -7,8 +7,8 @@ import (
 // Effect represents the effect.
 type Effect interface {
 	Start() time.Time
-	Deadline() time.Time
 	Priority() int
+	Active() bool
 	Run(system *System)
 }
 
@@ -43,7 +43,7 @@ func (s *System) RemoveEffect(id string) {
 // Run runs all of the effects in the system.
 func (s *System) Run() {
 	for key, effect := range s.RunningEffects {
-		if effect.Deadline().Before(time.Now()) {
+		if !effect.Active() {
 			delete(s.RunningEffects, key)
 			continue
 		}

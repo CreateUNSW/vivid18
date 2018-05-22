@@ -3,7 +3,7 @@
 #include <enc28j60.h>
 #include <FastLED.h>
 
-#define BOARD_ID 11
+#define BOARD_ID 64
 
 #define ORDER_M20 RBG
 #define ORDER_M30 RGB
@@ -44,7 +44,7 @@ uint8_t ackReply[] = {'A', 1};
 unsigned long curMillis = 0;
 
 uint8_t Ethernet::buffer[1200];
-CRGB *leds = (CRGB*)Ethernet::buffer;
+CRGB *leds = (CRGB*)(Ethernet::buffer + UDP_DATA_P);
 
 // People say this is a way to reset an Arduino in software.
 // But really, this is causing a segfault lol.
@@ -182,7 +182,7 @@ void receive(uint16_t destPort, uint8_t srcIP[IP_LEN], uint16_t srcPort, const c
   countReply[1]++;
 }
 
-void setup() {  
+void setup() {
   setupLEDs();
   startNetwork();
 

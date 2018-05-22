@@ -23,6 +23,8 @@ const (
 
 var devices = make(map[string]time.Time)
 var deviceMutex = new(sync.Mutex)
+var colors = make(map[byte][]byte)
+var colorMutex = new(sync.Mutex)
 var listener *net.UDPConn
 
 func discoverDaemon() {
@@ -38,8 +40,27 @@ func discoverDaemon() {
 		}
 
 		deviceMutex.Lock()
+		if _, found := devices[ip.IP.String()]; !found {
+			colorMutex.Lock()
+			colors[ip.IP[3]] = []byte{0xFF, 0xFF, 0xFF}
+			colorMutex.Unlock()
+		}
 		devices[ip.IP.String()] = time.Now()
 		deviceMutex.Unlock()
+	}
+}
+
+func lightUpdater() {
+	for range time.Tick(33 * time.Millisecond) {
+		colorMutex.Lock()
+		for device, c := range colors {
+			dest := net.IPv4(192, 168, 2, device)
+			listener.WriteToUDP(bytes.Repeat(c, 70*4), &net.UDPAddr{
+				IP:   dest,
+				Port: DevicePort,
+			})
+		}
+		colorMutex.Unlock()
 	}
 }
 
@@ -60,6 +81,7 @@ func main() {
 	}
 
 	go discoverDaemon()
+	go lightUpdater()
 
 	fmt.Println("Diagnostics CLI for CREATE VIVID 2018")
 	fmt.Println("Written by Jason Chu (me@chuie.io)")
@@ -93,25 +115,22 @@ func main() {
 				break
 			}
 
-			dest := net.IPv4(192, 168, 2, byte(n))
-
 			dec, err := hex.DecodeString(args[2])
 			if err != nil {
 				fmt.Println(err)
 				break
 			}
 
-			if len(dec) < 3 {
-				fmt.Println("hex must have at least 3 bytes")
+			if len(dec) != 3 {
+				fmt.Println("hex must be 3 bytes")
 				break
 			}
 
-			listener.WriteToUDP(bytes.Repeat(dec, 70*4), &net.UDPAddr{
-				IP:   dest,
-				Port: DevicePort,
-			})
+			colorMutex.Lock()
+			colors[byte(n)] = dec
+			colorMutex.Unlock()
 
-			fmt.Println("Command sent")
+			fmt.Println("Color updated")
 		case "ls":
 			deviceMutex.Lock()
 			for ip, seen := range devices {
