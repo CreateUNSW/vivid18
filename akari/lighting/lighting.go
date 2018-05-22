@@ -45,6 +45,9 @@ func (s *System) RemoveEffect(id string) {
 // Run runs all of the effects in the system.
 func (s *System) Run() {
 	s.CurrTime = time.Now()
+
+	// TODO: Set all LEDs to black?
+
 	for key, effect := range s.RunningEffects {
 		if !effect.Active() {
 			delete(s.RunningEffects, key)

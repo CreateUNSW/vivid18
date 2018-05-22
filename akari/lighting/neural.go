@@ -85,7 +85,7 @@ func (n *Neural) Priority() int {
 }
 
 // for displacement of led from effect centre point,
-// gets value from 0-1 for brightness
+// gets value from [0..1] for brightness
 func (n *Neural) f(x int) float64 {
 	if (math.Abs(x) > n.effectRadius) return 0	// if led is outside the radius of effect, it's 0
 	return math.Sin(float64(x)*math.Pi/(2*n.effectRadius)+(math.Pi/2))
@@ -98,6 +98,9 @@ func (n *Neural) f(x int) float64 {
 // fernDist is how many leds away this fern is from the starting fern
 func (n *Neural) runFern(fernDist int, effectDisplacement int, f *Fern) {
 	armLength := len(f.Arms[0])
+	// no op if effect doesn't affect this fern
+	if (effectDisplacement + n.effectRadius < fernDist 
+		|| effectDisplacement - n.effectRadius > fernDist + armLength) return;
 	// for each led in an arm
 	for i := 0; i < armLength; i++ {
 		ledDistance := fernDist + i;
@@ -117,34 +120,39 @@ func (n *Neural) runFern(fernDist int, effectDisplacement int, f *Fern) {
 // fernDist is how many leds away this fern is from the starting fern
 func (n *Neural) runLinear(linearDist int, effectDisplacement int, linear *Linear, outwards bool) {
 	linearLength := len(linear.LEDs)
+	// no op if effect doesn't affect this Linear
+	if (effectDisplacement + n.effectRadius < linearDist 
+		|| effectDisplacement - n.effectRadius > linearDist + linearLength) return;
+
 	// if outwards, iterate from 0'th led outwards to increment distance correctly
 	if (outwards) {
 		for i := 0; i < linearLength; i++ {
 			distFromEffect := linearDist - effectDisplacement
-			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect) // TODO: blend color?
+			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect)
 			linearDist++
 		}
 	} else {
 		for i := linearLength - 1; i >= 0; i-- {
 			distFromEffect := linearDist - effectDisplacement
-			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect)	// TODO: blend color?
+			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect)
 			linearDist++			
 		}
 	}
 }
 
+// TODO: blend color with current led ? based on priority?
+
 // Gets the value transformed effect color
-// - Change to blend between black and effect's color?
-// - or maybe blend between led's current color and effect's color?
+// - or  blend between led's current color and effect's color?
 func (n *Neural) getColor(value float64) color.Color {
-	h, c, _ := n.colorfulColor.Hcl()	// Get rid of this function call? 
-										// (Store H and C in Neural rather than a colorful.Color)
-	return colorful.Hcl(h, c, value)
+	h, c, l := n.colorfulColor.Hcl()	// Get rid of this function call? 
+										// (Store HCL in Neural rather than a colorful.Color)
+	return colorful.Hcl(h, value * c, l * value)
 }
 
 // Returns a RGBA struct for an led calculated by distance between led and effect
 func (n *Neural) getColorFromDisplacement(distFromEffect int) color.RGBA {
-	ledVal := n.f(math.Abs(distFromEffect))
+	ledVal := n.f(distFromEffect)
 	ledColor := n.getColor(ledVal)
 	r, g, b, _ = ledColor.RGBA();
 	col := color.RGBA{
