@@ -18,6 +18,8 @@ type System struct {
 	Root           []*Linear
 	TreeTop        *TreeTop
 	TreeBase       *TreeBase
+
+	CurrTime time.Time
 }
 
 // NewSystem returns a new lighting system.
@@ -42,6 +44,7 @@ func (s *System) RemoveEffect(id string) {
 
 // Run runs all of the effects in the system.
 func (s *System) Run() {
+	s.CurrTime = time.Now()
 	for key, effect := range s.RunningEffects {
 		if !effect.Active() {
 			delete(s.RunningEffects, key)

@@ -38,20 +38,25 @@ type Neural struct {
 	start     time.Time
 	color     color.Color
 	startFern *Fern
+	speed	  int // nanoseconds per led
+					// (how many nanoseconds it takes for the pulse to move over a single led)
 }
 
 // NeuralStepTime represents the amount of time it takes for the neural pulse to move
 // one LED.
 const NeuralStepTime = 50 * time.Millisecond
+// Defines radius of effect in # of LEDs
+const NeuralEffectRadius = 15
 
 // NewNeural returns a new Neural effect.
-func NewNeural(col color.Color, startFern *Fern, priority int) *Neural {
+func NewNeural(col color.Color, startFern *Fern, priority int, speed int) *Neural {
 	return &Neural{
 		priority:  priority,
 		start:     time.Now(),
 		active:    true,
 		color:     col,
 		startFern: startFern,
+		speed:	   speed
 	}
 }
 
@@ -75,39 +80,39 @@ func (n *Neural) Priority() int {
 	return n.priority
 }
 
+// for displacement of led from effect centre point,
+// gets value from 0-1 for brightness
 func (n *Neural) f(x int) float64 {
-	steps := time.Since(n.start) / NeuralStepTime
-	steps -= math.Pi
-
-	if math.Abs(float64(x)-steps) > math.Pi {
-		return 0
-	}
-
-	return math.Sin(float64(x)+(math.Pi/2)) + 1
+	if (math.Abs(x) > 15) return 0	// if led is outside the radius of effect, it's 0	
+	return math.Sin(float64(x)*math.Pi/(2*NeuralEffectRadius)+(math.Pi/2))
 }
 
-func (n *Neural) runFern(d int, f *Fern) {
+// fernDist is how many leds away this fern is from the starting fern
+func (n *Neural) runFern(fernDist int, effectDisplacement int, f *Fern) {
+	armLength := len(f.Arms[0])
+	// for each led in an arm
 	for i := 0; i < len(f.Arms[0]); i++ {
 		for _, arm := range f.Arms {
-			color.
-			arm[i].
+			ledDistance := fernDist + i;
+			distFromEffect := ledDistance - effectDisplacement
+			ledVal := n.f(distFromEffect)
+			arm[i] = getColor(ledVal)
 		}
 	}
-	f.Arms
 }
 
-func (n *Neural) getColor(d int) color.Color {
-	310, 120
-	colorful.Hcl(310, 1.0, 0.5).BlendHcl(col2 colorful.Color, t float64)
+func (n *Neural) getColor(value float64) color.Color {
+	mainColor = (colorful.Color) colorful.MakeColor(n.color)
+	return colorful.Hcl(mainColor.Hcl().h, mainColor.Hcl().c, value)
 }
 
 // Run runs.
 func (n *Neural) Run(s *System) {
-	n.startFern
-
-	for _,
 
 	r, g, b, _ := n.color.RGBA()
+	duration := (time.Duration) s.CurrTime.Sub(n.start)	// duration since effect started
+	effectDisplacement := (int) duration.Nanoseconds / n.speed; // how many leds effect has moved
+	
 	col := color.RGBA{
 		R: uint8(int(float64(r)*progress) >> 8),
 		G: uint8(int(float64(g)*progress) >> 8),
