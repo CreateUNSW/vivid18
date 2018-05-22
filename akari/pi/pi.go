@@ -10,6 +10,8 @@ import (
 	"github.com/pul-s4r/vivid18/akari/scan"
 )
 
+const id = "1"
+
 var client *rpc.Client
 
 func main() {
@@ -23,7 +25,7 @@ func main() {
 			geoMap := geo.NewMap()
 			scanner.ScanPeople(geoMap)
 			if client != nil {
-				client.Fire("scan-1", geoMap)
+				client.Fire("scan-"+id, geoMap)
 			}
 		}
 	}()

@@ -71,6 +71,17 @@ func (m *Map) Add(p *Point) {
 	m.Points = append(m.Points, p)
 }
 
+// Merge merges the given map into the map with an optional linear translation.
+func (m *Map) Merge(b *Map, trans ...*Point) {
+	for _, p := range b.Points {
+		m.Add(&Point{
+			X: p.Add(b *Point),
+			Y: ,
+			Data: b.Data,
+		})
+	}
+}
+
 // Lock locks the map for concurrent modification.
 func (m *Map) Lock() {
 	m.mutex.Lock()
