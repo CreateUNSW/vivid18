@@ -14,7 +14,7 @@
 #define ORDER_4 ORDER_M20
 
 #define NUM_1 50
-#define NUM_2 50
+#define NUM_2 60
 #define NUM_3 0
 #define NUM_4 0
 
