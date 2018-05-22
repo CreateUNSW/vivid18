@@ -33,13 +33,15 @@ import (
 
 // Neural represents a neural effect.
 type Neural struct {
-	priority  int
-	active    bool
-	start     time.Time
-	color     color.Color
-	startFern *Fern
-	speed	  int // nanoseconds per led
+	priority  		int
+	active    		bool
+	start     		time.Time
+	mainColor     	color.Color
+	startFern 		*Fern
+	speed	  		int // nanoseconds per led
 					// (how many nanoseconds it takes for the pulse to move over a single led)
+	colorfulColor 	colorful.Color	// Potentially change to hue and chroma for efficiency
+	effectRadius 	int
 }
 
 // NeuralStepTime represents the amount of time it takes for the neural pulse to move
@@ -49,14 +51,16 @@ const NeuralStepTime = 50 * time.Millisecond
 const NeuralEffectRadius = 15
 
 // NewNeural returns a new Neural effect.
-func NewNeural(col color.Color, startFern *Fern, priority int, speed int) *Neural {
+func NewNeural(col color.Color, startFern *Fern, priority int, speed int, radius int) *Neural {
 	return &Neural{
 		priority:  priority,
 		start:     time.Now(),
 		active:    true,
-		color:     col,
+		mainColor:     col,
 		startFern: startFern,
 		speed:	   speed
+		colorfulColor: colorful.MakeColor(col),
+		effectRadius: radius
 	}
 }
 
@@ -83,43 +87,105 @@ func (n *Neural) Priority() int {
 // for displacement of led from effect centre point,
 // gets value from 0-1 for brightness
 func (n *Neural) f(x int) float64 {
-	if (math.Abs(x) > 15) return 0	// if led is outside the radius of effect, it's 0	
-	return math.Sin(float64(x)*math.Pi/(2*NeuralEffectRadius)+(math.Pi/2))
+	if (math.Abs(x) > n.effectRadius) return 0	// if led is outside the radius of effect, it's 0
+	return math.Sin(float64(x)*math.Pi/(2*n.effectRadius)+(math.Pi/2))
 }
+
+// TODO: Both runFern and runLinear override the LED value - fix by blending?
+// - to blend each led requires storing its HCL color, 
+// - or repeated conversion from RGB -> colorful.Color -> Hcl
 
 // fernDist is how many leds away this fern is from the starting fern
 func (n *Neural) runFern(fernDist int, effectDisplacement int, f *Fern) {
 	armLength := len(f.Arms[0])
 	// for each led in an arm
-	for i := 0; i < len(f.Arms[0]); i++ {
+	for i := 0; i < armLength; i++ {
+		ledDistance := fernDist + i;
+		distFromEffect := ledDistance - effectDisplacement
+		colorRGBA = n.getColorFromDisplacement(distFromEffect)		
 		for _, arm := range f.Arms {
-			ledDistance := fernDist + i;
-			distFromEffect := ledDistance - effectDisplacement
-			ledVal := n.f(distFromEffect)
-			arm[i] = getColor(ledVal)
+			col := color.RGBA{
+				R:	colorRBGA.R,
+				G:	colorRGBA.G,
+				B:	colorRGBA.B,
+			}
+			arm[i] = col	// TODO: blend color?
 		}
 	}
 }
 
+// fernDist is how many leds away this fern is from the starting fern
+func (n *Neural) runLinear(linearDist int, effectDisplacement int, linear *Linear, outwards bool) {
+	linearLength := len(linear.LEDs)
+	// if outwards, iterate from 0'th led outwards to increment distance correctly
+	if (outwards) {
+		for i := 0; i < linearLength; i++ {
+			distFromEffect := linearDist - effectDisplacement
+			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect) // TODO: blend color?
+			linearDist++
+		}
+	} else {
+		for i := linearLength - 1; i >= 0; i-- {
+			distFromEffect := linearDist - effectDisplacement
+			linear.LEDs[i] = n.getColorFromDisplacement(distFromEffect)	// TODO: blend color?
+			linearDist++			
+		}
+	}
+}
+
+// Gets the value transformed effect color
+// - Change to blend between black and effect's color?
+// - or maybe blend between led's current color and effect's color?
 func (n *Neural) getColor(value float64) color.Color {
-	mainColor = (colorful.Color) colorful.MakeColor(n.color)
-	return colorful.Hcl(mainColor.Hcl().h, mainColor.Hcl().c, value)
+	h, c, _ := n.colorfulColor.Hcl()	// Get rid of this function call? 
+										// (Store H and C in Neural rather than a colorful.Color)
+	return colorful.Hcl(h, c, value)
+}
+
+// Returns a RGBA struct for an led calculated by distance between led and effect
+func (n *Neural) getColorFromDisplacement(distFromEffect int) color.RGBA {
+	ledVal := n.f(math.Abs(distFromEffect))
+	ledColor := n.getColor(ledVal)
+	r, g, b, _ = ledColor.RGBA();
+	col := color.RGBA{
+		R:	r,
+		G:	g,
+		B:	b,
+	}
+	return col
+}
+
+// From a fern apply the effect to the fern, and the inner linear if not outwards
+// or outer linears if outwards
+func (n *Neural) recursiveApply(ledDist int, effectDist int, fern *Fern, outwards bool) {
+	if (fern == nil) return
+	n.runFern(ledDist, effectDist, fern)
+	if (outwards) {
+		for _,Linear := range fern.OuterLinears {
+			n.runLinear(ledDist, effectDist, Linear, outwards)
+			n.recursiveApply(ledDist + len(Linear.LEDs), effectDist, Linear.OuterFern, outwards)
+		}
+	} else {
+		n.runLinear(ledDist, effectDist, fern.InnerLinear, outwards)
+		n.recursiveApply(ledDist + len(fern.InnerLinear.LEDs), effectDist, Linear.InnerFern, outwards)
+	}
 }
 
 // Run runs.
 func (n *Neural) Run(s *System) {
-
-	r, g, b, _ := n.color.RGBA()
 	duration := (time.Duration) s.CurrTime.Sub(n.start)	// duration since effect started
 	effectDisplacement := (int) duration.Nanoseconds / n.speed; // how many leds effect has moved
 	
-	col := color.RGBA{
-		R: uint8(int(float64(r)*progress) >> 8),
-		G: uint8(int(float64(g)*progress) >> 8),
-		B: uint8(int(float64(b)*progress) >> 8),
-	}
+	// Run effect on starting fern
+	n.runFern(0, effectDisplacement, n.startFern)
 
-	for _, l := range s.Root {
-		n.recursiveApply(l, col)
+	// Run the effect outwards on outer linears and recursively outwards
+	for _, Linear := range n.startFern.OuterLinears {
+		n.runLinear(0, effectDist, Linear, true)
+		n.recursiveApply(len(Linear.LEDs), effectDist, Linear.OuterFern, true)
 	}
+	// Run the effect on inner linear and recursively inwards
+	// TODO: With current component system - breaks at tree
+	n.runLinear(0, effectDist, n.startFern.InnerLinear, false)
+	n.recursiveApply(len(fern.InnerLinear.LEDs), effectDist, Linear.InnerFern, false)
 }

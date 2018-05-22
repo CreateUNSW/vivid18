@@ -16,10 +16,16 @@ type Linear struct {
 
 // Fern represents a fern.
 type Fern struct {
-	InnerLinear *Linear   // A Fern's inner linear
-	OuterLinear []*Linear // A fern's outer linear(s)
-	Arms        [8][5]*color.RGBA
+	InnerLinear  *Linear   // A Fern's inner linear
+	OuterLinears []*Linear // A fern's outer linear(s)
+	Arms         [8][5]*color.RGBA
 }
+
+// TODO: Consider TreeBase/TreeTop as well as ferns to inherit from
+// a common "Node", which all have OuterLinears
+// allows for effects to recursively flow through the tree
+// by iterating over the tree's outer linears?
+// (but will also probably need a boolean to identify "Node" type)
 
 // TreeTop represents the lights on the top of the tree.
 type TreeTop struct{}
