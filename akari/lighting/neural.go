@@ -189,11 +189,11 @@ func (n *Neural) Run(s *System) {
 
 	// Run the effect outwards on outer linears and recursively outwards
 	for _, Linear := range n.startFern.OuterLinears {
-		n.runLinear(0, effectDist, Linear, true)
-		n.recursiveApply(len(Linear.LEDs), effectDist, Linear.OuterFern, true)
+		n.runLinear(0, effectDisplacement, Linear, true)
+		n.recursiveApply(len(Linear.LEDs), effectDisplacement, Linear.OuterFern, true)
 	}
 	// Run the effect on inner linear and recursively inwards
 	// TODO: With current component system - breaks at tree
-	n.runLinear(0, effectDist, n.startFern.InnerLinear, false)
-	n.recursiveApply(len(fern.InnerLinear.LEDs), effectDist, Linear.InnerFern, false)
+	n.runLinear(0, effectDisplacement, n.startFern.InnerLinear, false)
+	n.recursiveApply(len(fern.InnerLinear.LEDs), effectDisplacement, Linear.InnerFern, false)
 }

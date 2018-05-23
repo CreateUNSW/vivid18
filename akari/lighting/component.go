@@ -27,6 +27,10 @@ type Fern struct {
 // by iterating over the tree's outer linears?
 // (but will also probably need a boolean to identify "Node" type)
 
+// Also - for priority to work, will probably need a "PrioritySum"
+// property for each led, where it's equal to the sum of the priorities
+// of the effects applied
+
 // TreeTop represents the lights on the top of the tree.
 type TreeTop struct{}
 
