@@ -63,35 +63,35 @@ func main() {
 
 	mapSystem(system, devices, ferns)
 
-	physicalFerns := []*Fern{
-		{
-			Location: geo.NewPoint(0, -140),
-			LEDs:     system.Root[0].Ferns[0].Fern.Arms,
-		},
-		{
-			Location: geo.NewPoint(-170, -170),
-			LEDs:     system.Root[0].Ferns[1].Fern.Arms,
-		},
-	}
+	// physicalFerns := []*Fern{
+	// 	{
+	// 		Location: geo.NewPoint(0, -140),
+	// 		LEDs:     system.Root[0].Ferns[0].Fern.Arms,
+	// 	},
+	// 	{
+	// 		Location: geo.NewPoint(-170, -170),
+	// 		LEDs:     system.Root[0].Ferns[1].Fern.Arms,
+	// 	},
+	// }
 
 	crowd := geo.NewMap()
 
 	logger := logrus.New()
 	logger.Formatter = &logrus.TextFormatter{}
 
-	for fernID, fern := range physicalFerns {
-		// for i := 0; i < len(fern.LEDs); i++ {
-		// 	for j := 0; j < len(fern.LEDs[i]); j++ {
-		// 		fern.LEDs[i][j] = &color.RGBA{}
-		// 	}
-		// }
+	// for fernID, fern := range physicalFerns {
+	// 	// for i := 0; i < len(fern.LEDs); i++ {
+	// 	// 	for j := 0; j < len(fern.LEDs[i]); j++ {
+	// 	// 		fern.LEDs[i][j] = &color.RGBA{}
+	// 	// 	}
+	// 	// }
 
-		f := system.Root[0].Ferns[fernID].Fern
-		ferns = append(ferns, f)
+	// 	f := system.Root[0].Ferns[fernID].Fern
+	// 	ferns = append(ferns, f)
 
-		system.AddEffect(strconv.Itoa(fernID),
-			lighting.NewBlob(f, crowd, fern.Location, 310, 120))
-	}
+	// 	system.AddEffect(strconv.Itoa(fernID),
+	// 		lighting.NewBlob(f, crowd, fern.Location, 310, 120))
+	// }
 
 	go func() {
 		for range time.Tick(30 * time.Millisecond) {
@@ -101,7 +101,7 @@ func main() {
 			}
 			crowd.Lock()
 			payload := &Payload{
-				Ferns:  physicalFerns,
+				Ferns:  []*Fern{},
 				Sensor: crowd.Points,
 			}
 			crowd.Unlock()
@@ -224,6 +224,14 @@ func main() {
 	}
 }
 
+func reverseLEDs(leds []*color.RGBA) []*color.RGBA {
+	result := make([]*color.RGBA, len(leds))
+	for i := range leds {
+		result[len(leds)-1-i] = leds[i]
+	}
+	return result
+}
+
 func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns map[int]*lighting.Fern) {
 	linears := map[string]*lighting.Linear{
 		"A1A": &lighting.Linear{
@@ -265,6 +273,7 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 			InnerFern: ferns[23],
 			OuterFern: ferns[24],
 		},
+
 		"B2A": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[26],
@@ -273,7 +282,122 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 			InnerFern: ferns[21],
 			OuterFern: ferns[25],
 		},
-		// TODO: complete
+
+		"C1A": &lighting.Linear{
+			OuterFern: ferns[31],
+		},
+		"C1B": &lighting.Linear{
+			InnerFern: ferns[31],
+			OuterFern: ferns[33],
+		},
+		"C1C": &lighting.Linear{
+			InnerFern: ferns[33],
+			OuterFern: ferns[34],
+		},
+		"C1D": &lighting.Linear{
+			InnerFern: ferns[34],
+			OuterFern: ferns[35],
+		},
+
+		"C2A": &lighting.Linear{
+			InnerFern: ferns[31],
+			OuterFern: ferns[32],
+		},
+		"C2B": &lighting.Linear{
+			InnerFern: ferns[31],
+			OuterFern: ferns[36],
+		},
+
+		"D1A": &lighting.Linear{
+			OuterFern: ferns[41],
+		},
+		"D1B": &lighting.Linear{
+			InnerFern: ferns[41],
+			OuterFern: ferns[42],
+		},
+
+		"D2A": &lighting.Linear{
+			InnerFern: ferns[41],
+			OuterFern: ferns[43],
+		},
+		"D2B": &lighting.Linear{
+			InnerFern: ferns[41],
+			OuterFern: ferns[45],
+		},
+
+		"E1A": &lighting.Linear{
+			OuterFern: ferns[15],
+		},
+		"E1B": &lighting.Linear{
+			OuterFern: ferns[52],
+		},
+		"E1C": &lighting.Linear{
+			InnerFern: ferns[52],
+			OuterFern: ferns[53],
+		},
+
+		"F1A": &lighting.Linear{
+			OuterFern: ferns[61],
+		},
+		"F1B": &lighting.Linear{
+			InnerFern: ferns[61],
+			OuterFern: ferns[63],
+		},
+		"F1C": &lighting.Linear{
+			InnerFern: ferns[63],
+			OuterFern: ferns[62],
+		},
+
+		"F2A": &lighting.Linear{
+			InnerFern: ferns[63],
+			OuterFern: ferns[64],
+		},
+		"F2B": &lighting.Linear{
+			InnerFern: ferns[63],
+			OuterFern: ferns[65],
+		},
+		"F2C": &lighting.Linear{
+			InnerFern: ferns[65],
+			OuterFern: ferns[66],
+		},
+
+		"G1A": &lighting.Linear{
+			OuterFern: ferns[71],
+		},
+		"G1B": &lighting.Linear{
+			InnerFern: ferns[71],
+			OuterFern: ferns[72],
+		},
+		"G1C": &lighting.Linear{
+			InnerFern: ferns[72],
+			OuterFern: ferns[73],
+		},
+
+		"H1A": &lighting.Linear{
+			InnerFern: ferns[84],
+			OuterFern: ferns[83],
+			LEDs:      reverseLEDs(devices[81].LEDs[1][30 : 30+13]),
+		},
+		"H1B": &lighting.Linear{
+			InnerFern: ferns[83],
+			OuterFern: ferns[82],
+		},
+		"H1C": &lighting.Linear{
+			InnerFern: ferns[82],
+			OuterFern: ferns[81],
+		},
+		"H2A": &lighting.Linear{
+			InnerFern: ferns[82],
+			OuterFern: ferns[85],
+		},
+		"H2B": &lighting.Linear{
+			InnerFern: ferns[85],
+			OuterFern: ferns[86],
+		},
+		"H2C": &lighting.Linear{
+			InnerFern: ferns[87],
+			OuterFern: ferns[88],
+		},
 	}
 
 	for _, linear := range linears {
