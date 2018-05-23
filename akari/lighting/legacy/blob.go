@@ -19,7 +19,7 @@ type Blob struct {
 	loc      *geo.Point
 
 	lastBlends [8][5]float64
-
+2
 	baseColor   float64
 	accentColor float64
 }

@@ -32,7 +32,11 @@ type Fern struct {
 // of the effects applied
 
 // TreeTop represents the lights on the top of the tree.
-type TreeTop struct{}
+type TreeTop struct {
+	LEDs []*color.RGBA
+}
 
 // TreeBase represents the lights at the base of the tree.
-type TreeBase struct{}
+type TreeBase struct {
+	LEDs []*color.RGBA
+}

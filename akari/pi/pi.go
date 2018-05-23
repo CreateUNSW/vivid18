@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/1lann/rpc"
@@ -11,15 +13,14 @@ import (
 )
 
 const (
-	id       = "1"
-	minAngle = 100
-	maxAngle = 200
+	minAngle = -10000
+	maxAngle = 100000
 )
 
 var client *rpc.Client
 
 func main() {
-	scanner, err := scan.SetupScanner("lol", minAngle, maxAngle)
+	scanner, err := scan.SetupScanner(os.Args[2], minAngle, maxAngle)
 	if err != nil {
 		panic(err)
 	}
@@ -29,7 +30,8 @@ func main() {
 			geoMap := geo.NewMap()
 			scanner.ScanPeople(geoMap)
 			if client != nil {
-				client.Fire("scan-"+id, geoMap)
+				client.Fire("scan-"+os.Args[1], geoMap)
+				fmt.Println("completed scan:", len(geoMap.Points))
 			}
 		}
 	}()

@@ -22,16 +22,14 @@ type Breathing struct {
 	priority int
 	active   bool
 	start    time.Time
-	color    color.Color
 }
 
 // NewBreathing returns a new Breathing effect.
-func NewBreathing(col color.Color, priority int) *Breathing {
+func NewBreathing(priority int) *Breathing {
 	return &Breathing{
 		priority: priority,
 		start:    time.Now(),
 		active:   true,
-		color:    col,
 	}
 }
 
@@ -60,9 +58,9 @@ func (b *Breathing) recursiveApply(l *Linear, col *color.RGBA) {
 	if l.OuterFern != nil {
 		for _, arm := range l.OuterFern.Arms {
 			for _, led := range arm {
-				led.R = 0
-				led.G = 0
-				led.B = 0
+				led.R = col.R
+				led.G = col.G
+				led.B = col.B
 			}
 		}
 
@@ -81,6 +79,18 @@ func (b *Breathing) Run(s *System) {
 	c := colorful.Hsl(h, 1.0, lumos)
 
 	red, gre, blu := c.RGB255()
+
+	for _, led := range s.TreeTop.LEDs {
+		led.R = red
+		led.G = gre
+		led.B = blu
+	}
+
+	for _, led := range s.TreeBase.LEDs {
+		led.R = red
+		led.G = gre
+		led.B = blu
+	}
 
 	for _, arm := range s.Root {
 		b.recursiveApply(arm, &color.RGBA{

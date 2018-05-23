@@ -44,7 +44,7 @@ func discoverDaemon() {
 		deviceMutex.Lock()
 		if _, found := devices[ip.IP.String()]; !found {
 			colorMutex.Lock()
-			colors[ip.IP[3]] = []byte{0x00, 0x55, 0xFF}
+			colors[ip.IP.To4()[3]] = []byte{0x00, 0x55, 0xFF}
 			colorMutex.Unlock()
 		}
 		devices[ip.IP.String()] = time.Now()

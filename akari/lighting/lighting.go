@@ -18,8 +18,6 @@ type System struct {
 	Root           []*Linear
 	TreeTop        *TreeTop
 	TreeBase       *TreeBase
-
-	CurrTime time.Time
 }
 
 // NewSystem returns a new lighting system.
@@ -29,6 +27,8 @@ func NewSystem() *System {
 
 	return &System{
 		RunningEffects: make(map[string]Effect),
+		TreeTop:        &TreeTop{},
+		TreeBase:       &TreeBase{},
 	}
 }
 
@@ -44,16 +44,18 @@ func (s *System) RemoveEffect(id string) {
 
 // Run runs all of the effects in the system.
 func (s *System) Run() {
-	s.CurrTime = time.Now()
-
 	// TODO: Set all LEDs to black?
 
-	for key, effect := range s.RunningEffects {
-		if !effect.Active() {
-			delete(s.RunningEffects, key)
-			continue
-		}
+	for priority := 1; priority <= 5; priority++ {
+		for key, effect := range s.RunningEffects {
+			if !effect.Active() {
+				delete(s.RunningEffects, key)
+				continue
+			}
 
-		effect.Run(s)
+			if effect.Priority() == priority {
+				effect.Run(s)
+			}
+		}
 	}
 }

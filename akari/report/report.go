@@ -5,6 +5,7 @@ package report
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/rand"
 	"net"
 	"sync"
@@ -62,14 +63,16 @@ func NewReporter(conn *net.UDPConn, logger *logrus.Logger) *Reporter {
 				continue
 			}
 
-			id := int(addr.IP[3])
+			id := int(addr.IP.To4()[3])
 			r.seenMutex.Lock()
 			if report, found := r.seen[id]; found {
 				report.LastSeen = time.Now()
 			} else {
 				r.seen[id] = &DeviceReport{
-					LastSeen: time.Now(),
+					LastSeen:    time.Now(),
+					LastReports: make([]int, 10),
 				}
+				fmt.Println("found:", id)
 			}
 
 			device := r.seen[id]
@@ -93,6 +96,8 @@ func NewReporter(conn *net.UDPConn, logger *logrus.Logger) *Reporter {
 			r.seenMutex.Unlock()
 		}
 	}()
+
+	return r
 }
 
 // SeenIDs returns all the seen IDs.

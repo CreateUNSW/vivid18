@@ -1,6 +1,7 @@
 package netscan
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"sync"
@@ -23,13 +24,13 @@ type Receiver struct {
 	ticker   *time.Ticker
 
 	resultMutex *sync.Mutex
-	results     [4]*Result
+	results     [5]*Result
 
 	translations []*geo.Point
 }
 
 func Receive(logger *logrus.Logger, trans []*geo.Point) (*Receiver, error) {
-	listener, err := net.Listen("tcp", "0.0.0.0:5555")
+	listener, err := net.Listen("tcp", "192.168.2.1:5555")
 	if err != nil {
 		return nil, err
 	}
@@ -48,40 +49,49 @@ func Receive(logger *logrus.Logger, trans []*geo.Point) (*Receiver, error) {
 				logger.WithError(err).Fatal("failed to listen")
 			}
 
-			client, err := rpc.NewClient(conn)
-			if err != nil {
-				logger.WithError(err).Warn("error receiving connection")
-				continue
-			}
+			fmt.Println("got connection:", conn.RemoteAddr())
 
-			for i := 1; i <= 4; i++ {
-				id := strconv.Itoa(i)
-				idN := i
-				client.On("scan-"+id, func(data interface{}) interface{} {
-					defer func() {
-						if r := recover(); r != nil {
-							logger.WithField("recover", r).Error("recovered from scan panic")
-						}
-					}()
+			func() {
+				client, err := rpc.NewClient(conn)
+				if err != nil {
+					logger.WithError(err).Warn("error receiving connection")
+					return
+				}
 
-					r.onReceive(idN, data.(*geo.Map))
+				for i := 1; i <= 4; i++ {
+					id := strconv.Itoa(i)
+					idN := i
+					client.On("scan-"+id, func(data interface{}) interface{} {
+						defer func() {
+							if r := recover(); r != nil {
+								logger.WithField("recover", r).Error("recovered from scan panic")
+							}
+						}()
 
-					return nil
-				})
-			}
+						r.onReceive(idN, data.(geo.Map))
 
+						return nil
+					})
+				}
+
+				fmt.Println("receiving...")
+
+				go func() {
+					fmt.Println(client.Receive())
+				}()
+			}()
 		}
 	}()
 
 	return r, nil
 }
 
-func (r *Receiver) onReceive(id int, crowd *geo.Map) {
+func (r *Receiver) onReceive(id int, crowd geo.Map) {
 	r.resultMutex.Lock()
 	defer r.resultMutex.Unlock()
 
 	r.results[id] = &Result{
-		crowd:  crowd,
+		crowd:  &crowd,
 		update: time.Now(),
 	}
 }
@@ -95,13 +105,30 @@ func (r *Receiver) ScanPeople(crowd *geo.Map) {
 	crowd.Clear()
 
 	r.resultMutex.Lock()
-	for id, result := range r.results {
+	defer r.resultMutex.Unlock()
+	for _, result := range r.results {
 		if result == nil {
 			continue
 		}
 
 		if time.Since(result.update) < 3*time.Second {
-			crowd.Merge(result.crowd, r.translations[id])
+			crowd.Merge(result.crowd)
 		}
 	}
+}
+
+func (r *Receiver) GetAll() []*geo.Map {
+	results := make([]*geo.Map, 5)
+	r.resultMutex.Lock()
+	defer r.resultMutex.Unlock()
+
+	for i, result := range r.results {
+		if result == nil {
+			continue
+		}
+
+		results[i] = result.crowd
+	}
+
+	return results
 }

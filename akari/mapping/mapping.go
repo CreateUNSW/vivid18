@@ -8,7 +8,7 @@ import (
 	"github.com/pul-s4r/vivid18/akari/lighting"
 )
 
-var conn *net.UDPConn
+var Conn *net.UDPConn
 
 // Port values
 const (
@@ -18,7 +18,7 @@ const (
 
 func init() {
 	var err error
-	conn, err = net.ListenUDP("udp", &net.UDPAddr{
+	Conn, err = net.ListenUDP("udp", &net.UDPAddr{
 		IP:   net.IPv4(192, 168, 2, 1),
 		Port: 5050,
 	})
@@ -77,7 +77,7 @@ func (d *Device) Render() error {
 		}
 	}
 
-	_, err := conn.WriteToUDP(buf.Bytes(), d.Addr)
+	_, err := Conn.WriteToUDP(buf.Bytes(), d.Addr)
 	return err
 }
 

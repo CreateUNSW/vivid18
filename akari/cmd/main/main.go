@@ -1,13 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"encoding/hex"
 	"fmt"
 	"image/color"
-	"os"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +15,9 @@ import (
 	"github.com/pul-s4r/vivid18/akari/lighting"
 	"github.com/pul-s4r/vivid18/akari/mapping"
 	"github.com/pul-s4r/vivid18/akari/netscan"
+	"github.com/pul-s4r/vivid18/akari/report"
+
+	_ "github.com/pul-s4r/vivid18/akari/scan"
 )
 
 type Fern struct {
@@ -35,6 +33,11 @@ type Payload struct {
 var upgrader = websocket.Upgrader{}
 var lisMutex = new(sync.Mutex)
 var listeners = make(map[string]chan<- *Payload)
+
+var activate [5]bool
+var closeFerns = []int{
+	0, 0, 62, 44, 24,
+}
 
 func printHelp() {
 	fmt.Println("Available commands:")
@@ -60,6 +63,10 @@ func main() {
 		devices[deviceID] = mapping.NewStandardDevice(deviceID)
 		ferns[deviceID] = devices[deviceID].AsFern(0)
 	}
+
+	devices[8] = mapping.NewDevice(8, []int{70, 70, 70, 70})
+	devices[9] = mapping.NewDevice(9, []int{120, 70, 70, 70})
+	devices[10] = mapping.NewDevice(10, []int{70, 70, 70, 70})
 
 	mapSystem(system, devices, ferns)
 
@@ -93,12 +100,52 @@ func main() {
 	// 		lighting.NewBlob(f, crowd, fern.Location, 310, 120))
 	// }
 
+	system.AddEffect("breathing", lighting.NewBreathing(1))
+
+	reporter := report.NewReporter(mapping.Conn, logger)
+
+	// var edgeFerns = []int{66, 62, 64, 53, 42, 35, 32, 24, 26, 73, 25, 16, 13}
+
 	go func() {
-		for range time.Tick(30 * time.Millisecond) {
-			system.Run()
-			for _, dev := range devices {
-				go dev.Render()
-			}
+		last := time.Now()
+		for range time.Tick(42 * time.Millisecond) {
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						fmt.Println(r)
+					}
+				}()
+				if time.Since(last) > time.Second {
+					system.AddEffect(uuid.New().String(), lighting.NewNeural(color.RGBA{
+						R: 0,
+						G: 0xff,
+						B: 0,
+					}, nil, 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, true))
+					last = time.Now()
+
+					// n := rand.Intn(len(edgeFerns))
+
+					for i := 2; i <= 4; i++ {
+						if activate[i] {
+							fmt.Println("activated!")
+							system.AddEffect(uuid.New().String(), lighting.NewNeural(color.RGBA{
+								R: 0xff,
+								G: 0x00,
+								B: 0x00,
+							}, ferns[closeFerns[i]], 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, false))
+						}
+					}
+					return
+				}
+
+				system.Run()
+				for _, dev := range devices {
+					report := reporter.GetReport(int(dev.Addr.IP.To4()[3]))
+					if report != nil && time.Since(report.LastSeen) < 3*time.Second {
+						dev.Render()
+					}
+				}
+			}()
 			// crowd.Lock()
 			// payload := &Payload{
 			// 	Ferns:  []*Fern{},
@@ -111,92 +158,70 @@ func main() {
 		}
 	}()
 
-	effectID := 1
-	scan := bufio.NewScanner(os.Stdin)
-	for {
-		fmt.Print("> ")
-		if !scan.Scan() {
-			fmt.Println("Goodbye!")
-			break
-		}
+	// effectID := 1
+	// scan := bufio.NewScanner(os.Stdin)
+	// for {
+	// 	fmt.Print("> ")
+	// 	if !scan.Scan() {
+	// 		fmt.Println("Goodbye!")
+	// 		break
+	// 	}
 
-		args := strings.Split(scan.Text(), " ")
-		if len(args) < 1 {
-			printHelp()
-			continue
-		}
+	// 	args := strings.Split(scan.Text(), " ")
+	// 	if len(args) < 1 {
+	// 		printHelp()
+	// 		continue
+	// 	}
 
-		switch args[0] {
-		case "?", "help":
-			printHelp()
-		case "add_neural":
-			if len(args) != 6 {
-				fmt.Println("expected `add_neural` + 5 arguments")
-				break
-			}
+	// 	switch args[0] {
+	// 	case "?", "help":
+	// 		printHelp()
+	// 	case "state":
+	// 		fmt.Println(len(system.RunningEffects))
+	// 	case "add_neural":
+	// 		if len(args) != 3 {
+	// 			fmt.Println("expected `add_neural` + 2 arguments")
+	// 			break
+	// 		}
 
-			fernid, err := strconv.Atoi(args[1])
-			if err != nil {
-				fmt.Println("Invalid fern id")
-				fmt.Println(err)
-				break
-			}
-			startFern, ok := ferns[fernid]
-			if !ok {
-				//do something here
-				fmt.Println("Fern id is invalid")
-				break
-			}
+	// 		fernid, err := strconv.Atoi(args[1])
+	// 		if err != nil {
+	// 			fmt.Println("Invalid fern id")
+	// 			fmt.Println(err)
+	// 			break
+	// 		}
+	// 		startFern, ok := ferns[fernid]
+	// 		if !ok {
+	// 			//do something here
+	// 			fmt.Println("Fern id is invalid")
+	// 			break
+	// 		}
 
-			dec, err := hex.DecodeString(args[2])
-			if err != nil {
-				fmt.Println("Invalid hex")
-				fmt.Println(err)
-				break
-			}
+	// 		dec, err := hex.DecodeString(args[2])
+	// 		if err != nil {
+	// 			fmt.Println("Invalid hex")
+	// 			fmt.Println(err)
+	// 			break
+	// 		}
 
-			if len(dec) != 3 {
-				fmt.Println("Invalid hex: hex must be 3 bytes")
-				break
-			}
+	// 		if len(dec) != 3 {
+	// 			fmt.Println("Invalid hex: hex must be 3 bytes")
+	// 			break
+	// 		}
 
-			priority, err := strconv.Atoi(args[3])
-			if err != nil {
-				fmt.Println("Invalid priority")
-				fmt.Println(err)
-				break
-			}
-			if (priority < 0 || priority > 5)
-			{
-				fmt.Println("Invalid priority: priority must be 0-5")
-				break
-			}
+	// 		colorRGBA := color.RGBA{
+	// 			R: dec[0],
+	// 			G: dec[1],
+	// 			B: dec[2],
+	// 		}
+	// 		neuralEffect := lighting.NewNeural(colorRGBA, startFern, 5,
+	// 			lighting.NeuralStepTime, lighting.NeuralEffectRadius, false)
+	// 		system.AddEffect(strconv.Itoa(effectID), neuralEffect)
+	// 	default:
+	// 		fmt.Println("Unknown command, type `help` for help")
+	// 	}
 
-			speed, err := strconv.Atoi(args[4])
-			if err != nil {
-				fmt.Println("Invalid speed")
-				fmt.Println(err)
-				break
-			}
-
-			neuralRadius, err := strconv.Atoi(args[5])
-			if err != nil {
-				fmt.Println("Invalid neural radius")
-				fmt.Println(err)
-				break
-			}
-			colorRGBA := color.RGBA{
-				R: dec[0],
-				G: dec[1],
-				B: dec[2],
-			}
-			neuralEffect := lighting.NewNeural(colorRGBA, startFern, priority, speed, neuralRadius)
-			system.AddEffect(strconv.Itoa(effectID), neuralEffect)
-		default:
-			fmt.Println("Unknown command, type `help` for help")
-		}
-
-	}
+	// }
 
 	// TODO: add proper translations
 	receiver, err := netscan.Receive(logger, []*geo.Point{})
@@ -214,6 +239,20 @@ func main() {
 
 	for {
 		receiver.ScanPeople(crowd)
+		fmt.Println("scan")
+		results := receiver.GetAll()
+		for i := 1; i <= 4; i++ {
+			if results[i] == nil {
+				continue
+			}
+
+			if len(results[i].Within(&geo.Point{X: 0, Y: 0}, 150)) > 0 {
+				fmt.Println("activated!")
+				activate[i] = true
+			} else {
+				activate[i] = false
+			}
+		}
 	}
 }
 
@@ -229,98 +268,94 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 	linears := map[string]*lighting.Linear{
 		"A1A": &lighting.Linear{
 			OuterFern: ferns[11],
-			LEDs: reverseLEDs(device[13].LEDs[1][32:32+11]),
+			LEDs:      reverseLEDs(devices[13].LEDs[1][32 : 32+11]),
 		},
 		"A1B": &lighting.Linear{
 			InnerFern: ferns[11],
 			OuterFern: ferns[12],
-			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
+			LEDs:      reverseLEDs(devices[13].LEDs[1][16 : 16+16]),
 		},
 		"A1C": &lighting.Linear{
 			InnerFern: ferns[12],
 			OuterFern: ferns[13],
-			LEDs: reverseLEDs(devices[13].LEDs[1][0:16]),
+			LEDs:      reverseLEDs(devices[13].LEDs[1][0:16]),
 		},
 
 		"A2A": &lighting.Linear{
 			OuterFern: ferns[14],
-			LEDs: reverseLEDs(devices[16].LEDs[1][26:36]),
+			LEDs:      reverseLEDs(devices[16].LEDs[1][26:36]),
 		},
 		"A2B": &lighting.Linear{
 			InnerFern: ferns[14],
 			OuterFern: ferns[15],
-			LEDs: reverseLEDs(devices[16].LEDs[1][13:13+13]),
+			LEDs:      reverseLEDs(devices[16].LEDs[1][13 : 13+13]),
 		},
 		"A2C": &lighting.Linear{
 			InnerFern: ferns[15],
 			OuterFern: ferns[16],
-			LEDs: reverseLEDs(devices[16].LEDs[1][0:13]),
+			LEDs:      reverseLEDs(devices[16].LEDs[1][0:13]),
 		},
 
 		"B1A": &lighting.Linear{
 			OuterFern: ferns[21],
-			LEDs: reverseLEDs(devices[24].LEDs[1][26:26+8]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][26 : 26+8]),
 		},
 		"B1B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[22],
-			LEDs: reverseLEDs(devices[24].LEDs[1][20:20+6),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][20 : 20+6]),
 		},
 		"B1C": &lighting.Linear{
 			InnerFern: ferns[22],
 			OuterFern: ferns[23],
-			LEDs: reverseLEDs(devices[24].LEDs[1][13:13+7]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][13 : 13+7]),
 		},
 		"B1D": &lighting.Linear{
 			InnerFern: ferns[23],
 			OuterFern: ferns[24],
-			LEDs: reverseLEDs(devices[24].LEDs[1][0:16+16]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][0 : 16+16]),
 		},
 
-
-		// TODO: Ambiguous chain
 		"B2A": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[26],
-			LEDs: reverseLEDs(devices[26].LEDs[1][16:16+16]),
+			LEDs:      reverseLEDs(devices[25].LEDs[1][0:17]),
 		},
 		"B2B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[25],
-			LEDs: reverseLEDs(devices[26].LEDs[1][16:16+16]),
+			LEDs:      devices[26].LEDs[1][17 : 17+18],
 		},
-
 
 		"C1A": &lighting.Linear{
 			OuterFern: ferns[31],
-			LEDs: reverseLEDs(devices[35].LEDs[1][27:27+6]),
+			LEDs:      reverseLEDs(devices[35].LEDs[1][27 : 27+6]),
 		},
 		"C1B": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[33],
-			LEDs: reverseLEDs(devices[35].LEDs[1][18:18+9]),
+			LEDs:      reverseLEDs(devices[35].LEDs[1][18 : 18+9]),
 		},
 		"C1C": &lighting.Linear{
 			InnerFern: ferns[33],
 			OuterFern: ferns[34],
-			LEDs: reverseLEDs(devices[35].LEDs[1][11:11+7]),
+			LEDs:      reverseLEDs(devices[35].LEDs[1][11 : 11+7]),
 		},
 		"C1D": &lighting.Linear{
 			InnerFern: ferns[34],
 			OuterFern: ferns[35],
-			LEDs: reverseLEDs(devices[35].LEDs[1][0:11]),
+			LEDs:      reverseLEDs(devices[35].LEDs[1][0:11]),
 		},
 
-		// TODO: Ambiguous chain
 		"C2A": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[32],
-			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
+			LEDs:      devices[36].LEDs[1][16 : 16+17],
 		},
 		"C2B": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[36],
-			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
+			LEDs:      reverseLEDs(devices[36].LEDs[1][0:16]),
 		},
 
 		"D1A": &lighting.Linear{
@@ -333,24 +368,34 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 			LEDs:      reverseLEDs(devices[42].LEDs[1][0:12]),
 		},
 
+		"D2FUCK": &lighting.Linear{
+			InnerFern: ferns[43],
+			OuterFern: ferns[44],
+			LEDs:      reverseLEDs(devices[44].LEDs[1][0:13]),
+		},
 		"D2A": &lighting.Linear{
 			InnerFern: ferns[41],
 			OuterFern: ferns[43],
+			LEDs:      reverseLEDs(devices[44].LEDs[1][13 : 13+14]),
 		},
 		"D2B": &lighting.Linear{
 			InnerFern: ferns[41],
 			OuterFern: ferns[45],
+			LEDs:      devices[44].LEDs[1][13+14 : 13+14+13],
 		},
 
 		"E1A": &lighting.Linear{
-			OuterFern: ferns[15],
+			OuterFern: ferns[51],
+			LEDs:      reverseLEDs(devices[51].LEDs[1][0:13]),
 		},
 		"E1B": &lighting.Linear{
 			OuterFern: ferns[52],
+			LEDs:      devices[51].LEDs[1][13 : 13+16],
 		},
 		"E1C": &lighting.Linear{
 			InnerFern: ferns[52],
 			OuterFern: ferns[53],
+			LEDs:      devices[51].LEDs[1][13+16 : 13+16+10],
 		},
 
 		"F1A": &lighting.Linear{
@@ -371,14 +416,17 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 		"F2A": &lighting.Linear{
 			InnerFern: ferns[63],
 			OuterFern: ferns[64],
+			LEDs:      reverseLEDs(devices[64].LEDs[1][0:12]),
 		},
 		"F2B": &lighting.Linear{
 			InnerFern: ferns[63],
 			OuterFern: ferns[65],
+			LEDs:      devices[64].LEDs[1][12 : 12+10],
 		},
 		"F2C": &lighting.Linear{
 			InnerFern: ferns[65],
 			OuterFern: ferns[66],
+			LEDs:      devices[64].LEDs[1][12+10 : 12+10+13],
 		},
 
 		"G1A": &lighting.Linear{
@@ -413,7 +461,7 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 		},
 
 		"H2A": &lighting.Linear{
-			InnerFern: ferns[82],
+			InnerFern: ferns[84],
 			OuterFern: ferns[85],
 			LEDs:      reverseLEDs(devices[87].LEDs[1][9+11 : 9+11+12]),
 		},
@@ -431,14 +479,43 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 
 	for _, linear := range linears {
 		if linear.InnerFern != nil {
-			linear.InnerFern.OuterLinear = append(linear.InnerFern.OuterLinear,
+			linear.InnerFern.OuterLinears = append(linear.InnerFern.OuterLinears,
 				linear)
 		}
 
 		if linear.OuterFern != nil {
-			linear.InnerFern.InnerLinear = linear
+			linear.OuterFern.InnerLinear = linear
 		}
 	}
+
+	system.Root = []*lighting.Linear{
+		linears["C1A"],
+		linears["B1A"],
+		linears["A2A"],
+		linears["A1A"],
+		linears["G1A"],
+		linears["F1A"],
+		linears["E1A"],
+		linears["E1B"],
+		linears["D1A"],
+		linears["H1A"],
+		linears["H2A"],
+	}
+
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[8].LEDs[0]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[8].LEDs[1]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[8].LEDs[2]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[8].LEDs[3]...)
+
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[10].LEDs[0]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[10].LEDs[1]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[10].LEDs[2]...)
+	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[10].LEDs[3]...)
+
+	system.TreeTop.LEDs = append(system.TreeTop.LEDs, devices[9].LEDs[0]...)
+	system.TreeTop.LEDs = append(system.TreeTop.LEDs, devices[9].LEDs[1]...)
+	system.TreeTop.LEDs = append(system.TreeTop.LEDs, devices[9].LEDs[2]...)
+	system.TreeTop.LEDs = append(system.TreeTop.LEDs, devices[9].LEDs[3]...)
 }
 
 func wsHandler(c echo.Context) error {
