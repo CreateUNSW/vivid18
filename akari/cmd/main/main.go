@@ -6,13 +6,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Sirupsen/logrus"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
 	"github.com/pul-s4r/vivid18/akari/geo"
 	"github.com/pul-s4r/vivid18/akari/lighting"
 	"github.com/pul-s4r/vivid18/akari/mapping"
-	"github.com/pul-s4r/vivid18/akari/scan"
+	"github.com/pul-s4r/vivid18/akari/netscan"
 )
 
 type Fern struct {
@@ -32,12 +34,24 @@ var listeners = make(map[string]chan<- *Payload)
 func main() {
 	system := lighting.NewSystem()
 
-	devices := []*mapping.Device{
-		mapping.NewDevice(11, 1),
-		mapping.NewDevice(10, 2),
+	stdDevices := []int{
+		11, 12, 13, 14, 15, 16,
+		21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36,
+		41, 42, 43, 44, 45,
+		51, 52, 53,
+		61, 62, 63, 64, 65, 66,
+		71, 72, 73,
+		81, 82, 83, 84, 85, 86, 87,
 	}
 
-	mapSystem(system, devices)
+	devices := make(map[int]*mapping.Device)
+	ferns := make(map[int]*lighting.Fern)
+	for _, deviceID := range stdDevices {
+		devices[deviceID] = mapping.NewStandardDevice(deviceID)
+		ferns[deviceID] = devices[deviceID].AsFern(0)
+	}
+
+	mapSystem(system, devices, ferns)
 
 	physicalFerns := []*Fern{
 		{
@@ -50,9 +64,10 @@ func main() {
 		},
 	}
 
-	var ferns []*lighting.Fern
-
 	crowd := geo.NewMap()
+
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{}
 
 	for fernID, fern := range physicalFerns {
 		// for i := 0; i < len(fern.LEDs); i++ {
@@ -71,8 +86,9 @@ func main() {
 	go func() {
 		for range time.Tick(30 * time.Millisecond) {
 			system.Run()
-			devices[0].Render()
-			devices[1].Render()
+			for _, dev := range devices {
+				go dev.Render()
+			}
 			crowd.Lock()
 			payload := &Payload{
 				Ferns:  physicalFerns,
@@ -85,7 +101,8 @@ func main() {
 		}
 	}()
 
-	scanner, err := scan.SetupScanner("/dev/cu.usbserial-DO0088ZE")
+	// TODO: add proper translations
+	receiver, err := netscan.Receive(logger, []*geo.Point{})
 	if err != nil {
 		panic(err)
 	}
@@ -99,24 +116,72 @@ func main() {
 	}()
 
 	for {
-		scanner.ScanPeople(crowd)
-		// fmt.Println("scan completed")
+		receiver.ScanPeople(crowd)
 	}
 }
 
-func mapSystem(system *lighting.System, devices []*mapping.Device) {
-	north := &lighting.Linear{
-		Outer: nil,
-		Inner: nil,
-		LEDs:  make([]*color.RGBA, 50),
+func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns map[int]*lighting.Fern) {
+	linears := map[string]*lighting.Linear{
+		"A1A": &lighting.Linear{
+			OuterFern: ferns[11],
+		},
+		"A1B": &lighting.Linear{
+			InnerFern: ferns[11],
+			OuterFern: ferns[12],
+		},
+		"A1C": &lighting.Linear{
+			InnerFern: ferns[12],
+			OuterFern: ferns[13],
+		},
+
+		"A2A": &lighting.Linear{
+			OuterFern: ferns[14],
+		},
+		"A2B": &lighting.Linear{
+			InnerFern: ferns[14],
+			OuterFern: ferns[15],
+		},
+		"A2C": &lighting.Linear{
+			InnerFern: ferns[15],
+			OuterFern: ferns[16],
+		},
+
+		"B1A": &lighting.Linear{
+			OuterFern: ferns[21],
+		},
+		"B1B": &lighting.Linear{
+			InnerFern: ferns[21],
+			OuterFern: ferns[22],
+		},
+		"B1C": &lighting.Linear{
+			InnerFern: ferns[22],
+			OuterFern: ferns[23],
+		},
+		"B1D": &lighting.Linear{
+			InnerFern: ferns[23],
+			OuterFern: ferns[24],
+		},
+		"B2A": &lighting.Linear{
+			InnerFern: ferns[21],
+			OuterFern: ferns[26],
+		},
+		"B2B": &lighting.Linear{
+			InnerFern: ferns[21],
+			OuterFern: ferns[25],
+		},
+		// TODO: complete
 	}
 
-	system.Root = append(system.Root, north)
-	// copy(north.LEDs, devices[0].LEDs[1][:])
+	for _, linear := range linears {
+		if linear.InnerFern != nil {
+			linear.InnerFern.OuterLinear = append(linear.InnerFern.OuterLinear,
+				linear)
+		}
 
-	north.AddFern(devices[0].AsFern(4), 0)
-	north.AddFern(devices[1].AsFern(0), 15)
-	// system.Root = append(system.Root, &Linear{})
+		if linear.OuterFern != nil {
+			linear.InnerFern.InnerLinear = linear
+		}
+	}
 }
 
 func wsHandler(c echo.Context) error {
@@ -140,13 +205,13 @@ func wsHandler(c echo.Context) error {
 		lisMutex.Unlock()
 	}()
 
-	go func() {
-		for {
-			if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
-				return
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		if err := ws.ReadJSON(&scan.DebugPoint); err != nil {
+	// 			return
+	// 		}
+	// 	}
+	// }()
 
 	for scan := range lis {
 		if err := ws.WriteJSON(scan); err != nil {

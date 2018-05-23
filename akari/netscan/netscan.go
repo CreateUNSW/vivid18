@@ -19,23 +19,26 @@ type Result struct {
 }
 
 type Receiver struct {
-	listener *net.Listener
+	listener net.Listener
 	ticker   *time.Ticker
 
 	resultMutex *sync.Mutex
-	results     map[string]*geo.Map
+	results     [4]*Result
+
+	translations []*geo.Point
 }
 
-func Receive(logger *logrus.Logger) (*Receiver, error) {
+func Receive(logger *logrus.Logger, trans []*geo.Point) (*Receiver, error) {
 	listener, err := net.Listen("tcp", "0.0.0.0:5555")
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Receiver{
-		listener:    listener,
-		ticker:      time.NewTicker(500 * time.Millisecond),
-		resultMutex: new(sync.Mutex),
+		listener:     listener,
+		ticker:       time.NewTicker(500 * time.Millisecond),
+		resultMutex:  new(sync.Mutex),
+		translations: trans,
 	}
 
 	go func() {
@@ -53,6 +56,7 @@ func Receive(logger *logrus.Logger) (*Receiver, error) {
 
 			for i := 1; i <= 4; i++ {
 				id := strconv.Itoa(i)
+				idN := i
 				client.On("scan-"+id, func(data interface{}) interface{} {
 					defer func() {
 						if r := recover(); r != nil {
@@ -60,7 +64,7 @@ func Receive(logger *logrus.Logger) (*Receiver, error) {
 						}
 					}()
 
-					r.onReceive(id, data.(*geo.Map))
+					r.onReceive(idN, data.(*geo.Map))
 
 					return nil
 				})
@@ -69,17 +73,35 @@ func Receive(logger *logrus.Logger) (*Receiver, error) {
 		}
 	}()
 
+	return r, nil
 }
 
-func (r *Receiver) onReceive(id string, crowd *geo.Map) {
+func (r *Receiver) onReceive(id int, crowd *geo.Map) {
 	r.resultMutex.Lock()
 	defer r.resultMutex.Unlock()
 
-	r.results[id] = crowd
+	r.results[id] = &Result{
+		crowd:  crowd,
+		update: time.Now(),
+	}
 }
 
 func (r *Receiver) ScanPeople(crowd *geo.Map) {
 	<-r.ticker.C
 
-	crowd.
+	crowd.Lock()
+	defer crowd.Unlock()
+
+	crowd.Clear()
+
+	r.resultMutex.Lock()
+	for id, result := range r.results {
+		if result == nil {
+			continue
+		}
+
+		if time.Since(result.update) < 3*time.Second {
+			crowd.Merge(result.crowd, r.translations[id])
+		}
+	}
 }

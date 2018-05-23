@@ -3,7 +3,6 @@ package scan
 import (
 	"encoding/gob"
 	"math"
-	"time"
 
 	"github.com/1lann/sweep"
 	"github.com/pul-s4r/vivid18/akari/geo"
@@ -17,8 +16,10 @@ var distComp = 0
 
 // Scanner represents a simplified, people scanner.
 type Scanner struct {
-	device *sweep.Device
-	scan   <-chan sweep.Scan
+	minAngle float64
+	maxAngle float64
+	device   *sweep.Device
+	scan     <-chan sweep.Scan
 }
 
 // PointMeta represents metaadata regarding a point that is used for the Data
@@ -34,61 +35,37 @@ func init() {
 }
 
 // SetupScanner sets up the scanner at the given path.
-func SetupScanner(path string) (*Scanner, error) {
-	return nil, nil
+func SetupScanner(path string, minAngle, maxAngle float64) (*Scanner, error) {
+	dev, err := sweep.NewDevice(path)
+	if err != nil {
+		return nil, err
+	}
 
-	// dev, err := sweep.NewDevice(path)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	dev.Reset()
+	dev.WaitUntilMotorReady()
+	dev.Close()
 
-	// log.Println("Setting up...")
-	// // dev.Reset()
-	// // log.Println(dev.Reset())
-	// // dev.Close()
+	dev, err = sweep.NewDevice(path)
+	if err != nil {
+		return nil, err
+	}
 
-	// // time.Sleep(20 * time.Second)
-	// // fmt.Println("Starting...")
+	dev.WaitUntilMotorReady()
+	dev.SetMotorSpeed(2)
+	dev.WaitUntilMotorReady()
+	dev.SetSampleRate(sweep.Rate500)
+	dev.WaitUntilMotorReady()
 
-	// // dev, err = sweep.NewDevice(path)
-	// // if err != nil {
-	// // 	return nil, err
-	// // }
+	scan, err := dev.StartScan()
+	if err != nil {
+		return nil, err
+	}
 
-	// dev.StopScan()
-	// dev.Drain()
-	// dev.WaitUntilMotorReady()
-	// dev.SetMotorSpeed(2)
-	// // dev.WaitUntilMotorReady()
-	// dev.SetSampleRate(sweep.Rate500)
-	// fmt.Println("Waiting ready")
-	// log.Println(dev.WaitUntilMotorReady())
-	// log.Println(dev.WaitUntilMotorReady())
-	// log.Println("Set up!")
-
-	// scan, err := dev.StartScan()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return &Scanner{dev, scan}, nil
+	return &Scanner{minAngle, maxAngle, dev, scan}, nil
 }
-
-var DebugPoint *geo.Point
 
 // ScanPeople scans people into the given map.
 func (s *Scanner) ScanPeople(crowd *geo.Map) {
-	time.Sleep(500 * time.Millisecond)
-	crowd.Lock()
-	defer crowd.Unlock()
-	crowd.Clear()
-
-	if DebugPoint != nil {
-		crowd.Add(DebugPoint)
-	}
-
-	return
-
 	var lastPoint *sweep.ScanSample
 
 	var aggregate struct {
@@ -107,6 +84,10 @@ func (s *Scanner) ScanPeople(crowd *geo.Map) {
 	crowd.Clear()
 
 	for _, point := range scan {
+		if point.Angle > s.maxAngle || point.Angle < s.minAngle {
+			continue
+		}
+
 		if lastPoint == nil {
 			aggregate.count = 1
 			aggregate.strength = int(point.SignalStrength)
