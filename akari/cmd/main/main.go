@@ -99,18 +99,18 @@ func main() {
 			for _, dev := range devices {
 				go dev.Render()
 			}
-			crowd.Lock()
-			payload := &Payload{
-				Ferns:  []*Fern{},
-				Sensor: crowd.Points,
-			}
-			crowd.Unlock()
-			for _, lis := range listeners {
-				lis <- payload
-			}
+			// crowd.Lock()
+			// payload := &Payload{
+			// 	Ferns:  []*Fern{},
+			// 	Sensor: crowd.Points,
+			// }
+			// crowd.Unlock()
+			// for _, lis := range listeners {
+			// 	lis <- payload
+			// }
 		}
 	}()
-	
+
 	effectID := 1
 	scan := bufio.NewScanner(os.Stdin)
 	for {
@@ -192,13 +192,6 @@ func main() {
 			}
 			neuralEffect := lighting.NewNeural(colorRGBA, startFern, priority, speed, neuralRadius)
 			system.AddEffect(strconv.Itoa(effectID), neuralEffect)
-
-		case "ls":
-			deviceMutex.Lock()
-			for ip, seen := range devices {
-				fmt.Println(ip, "-", "last seen", humanize.Time(seen))
-			}
-			deviceMutex.Unlock()
 		default:
 			fmt.Println("Unknown command, type `help` for help")
 		}

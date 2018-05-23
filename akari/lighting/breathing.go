@@ -58,6 +58,14 @@ func (b *Breathing) recursiveApply(l *Linear, col *color.RGBA) {
 	}
 
 	if l.OuterFern != nil {
+		for _, arm := range l.OuterFern.Arms {
+			for _, led := range arm {
+				led.R = 0
+				led.G = 0
+				led.B = 0
+			}
+		}
+
 		for _, child := range l.OuterFern.OuterLinears {
 			b.recursiveApply(child, col)
 		}
