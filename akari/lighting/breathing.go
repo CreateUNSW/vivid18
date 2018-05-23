@@ -1,6 +1,12 @@
-//+build ignore
+package lighting
 
-// TODO: not completed
+import (
+	"image/color"
+	"math"
+	"time"
+
+	"github.com/lucasb-eyer/go-colorful"
+)
 
 // Specification:
 //
@@ -11,99 +17,68 @@
 //
 // The colors will slowly rotate, and the palette depends on the number of people.
 
-package lighting
-
-import (
-	"github.com/lucasb-eyer/go-colorful"
-	"image/color"
-	"math"
-	"time"
-)
-
-// Breathing represents a neural effect.
+// Breathing represents a breathing effect.
 type Breathing struct {
-	priority  int
-	active    bool
-	start     time.Time
-	color     color.Color
-	startFern *Fern
+	priority int
+	active   bool
+	start    time.Time
+	color    color.Color
 }
 
-// NeuralStepTime represents the amount of time it takes for the neural pulse to move
-// one LED.
-const NeuralStepTime = 50 * time.Millisecond
-
-// NewNeural returns a new Breathing effect.
-func NewNeural(col color.Color, startFern *Fern, priority int) *Breathing {
+// NewBreathing returns a new Breathing effect.
+func NewBreathing(col color.Color, priority int) *Breathing {
 	return &Breathing{
-		priority:  priority,
-		start:     time.Now(),
-		active:    true,
-		color:     col,
-		startFern: startFern,
+		priority: priority,
+		start:    time.Now(),
+		active:   true,
+		color:    col,
 	}
 }
 
 // Active returns whether or not the effect is still active.
-func (n *Breathing) Active() bool {
-	return time.Since(start) < (5 * time.Second)
+func (b *Breathing) Active() bool {
+	return true
 }
 
 // Start returns the start time of the Breathing effect.
-func (n *Breathing) Start() time.Time {
-	return n.start
-}
-
-// Deadline returns the deadline of the Breathing effect.
-func (n *Breathing) Deadline() time.Time {
-	return n.deadline
+func (b *Breathing) Start() time.Time {
+	return b.start
 }
 
 // Priority returns the priority of the Breathing effect.
-func (n *Breathing) Priority() int {
-	return n.priority
+func (b *Breathing) Priority() int {
+	return b.priority
 }
 
-func (n *Breathing) f(x int) float64 {
-	steps := time.Since(n.start) / NeuralStepTime
-	steps -= math.Pi
-
-	if math.Abs(float64(x)-steps) > math.Pi {
-		return 0
+func (b *Breathing) recursiveApply(l *Linear, col *color.RGBA) {
+	for _, led := range l.LEDs {
+		led.R = col.R
+		led.G = col.G
+		led.B = col.B
 	}
 
-	return math.Sin(float64(x)+(math.Pi/2)) + 1
-}
-
-func (n *Breathing) runFern(d int, f *Fern) {
-	for i := 0; i < len(f.Arms[0]); i++ {
-		for _, arm := range f.Arms {
-			color.
-			arm[i].
+	if l.OuterFern != nil {
+		for _, child := range l.OuterFern.OuterLinears {
+			b.recursiveApply(child, col)
 		}
 	}
-	f.Arms
-}
-
-func (n *Breathing) getColor(d int) color.Color {
-	310, 120
-	colorful.Hcl(310, 1.0, 0.5).BlendHcl(col2 colorful.Color, t float64)
 }
 
 // Run runs.
-func (n *Breathing) Run(s *System) {
-	n.startFern
+func (b *Breathing) Run(s *System) {
+	t := time.Since(b.start)
 
-	for _,
+	h := math.Sin((t.Seconds()*math.Pi)/10.0+1)*65 + 140
+	lumos := (math.Sin((math.Mod(t.Seconds(), 4.0)/2.0)*math.Pi) + 1.3) / 6.0
+	c := colorful.Hsl(h, 1.0, lumos)
 
-	r, g, b, _ := n.color.RGBA()
-	col := color.RGBA{
-		R: uint8(int(float64(r)*progress) >> 8),
-		G: uint8(int(float64(g)*progress) >> 8),
-		B: uint8(int(float64(b)*progress) >> 8),
-	}
+	red, gre, blu := c.RGB255()
 
-	for _, l := range s.Root {
-		n.recursiveApply(l, col)
+	for _, arm := range s.Root {
+		b.recursiveApply(arm, &color.RGBA{
+			R: red,
+			G: gre,
+			B: blu,
+		})
 	}
 }
