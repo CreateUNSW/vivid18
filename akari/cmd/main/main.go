@@ -236,76 +236,98 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 	linears := map[string]*lighting.Linear{
 		"A1A": &lighting.Linear{
 			OuterFern: ferns[11],
+			LEDs: reverseLEDs(device[13].LEDs[1][32:32+11]),
 		},
 		"A1B": &lighting.Linear{
 			InnerFern: ferns[11],
 			OuterFern: ferns[12],
+			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
 		},
 		"A1C": &lighting.Linear{
 			InnerFern: ferns[12],
 			OuterFern: ferns[13],
+			LEDs: reverseLEDs(devices[13].LEDs[1][0:16]),
 		},
 
 		"A2A": &lighting.Linear{
 			OuterFern: ferns[14],
+			LEDs: reverseLEDs(devices[16].LEDs[1][26:36]),
 		},
 		"A2B": &lighting.Linear{
 			InnerFern: ferns[14],
 			OuterFern: ferns[15],
+			LEDs: reverseLEDs(devices[16].LEDs[1][13:13+13]),
 		},
 		"A2C": &lighting.Linear{
 			InnerFern: ferns[15],
 			OuterFern: ferns[16],
+			LEDs: reverseLEDs(devices[16].LEDs[1][0:13]),
 		},
 
 		"B1A": &lighting.Linear{
 			OuterFern: ferns[21],
+			LEDs: reverseLEDs(devices[24].LEDs[1][26:26+8]),
 		},
 		"B1B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[22],
+			LEDs: reverseLEDs(devices[24].LEDs[1][20:20+6),
 		},
 		"B1C": &lighting.Linear{
 			InnerFern: ferns[22],
 			OuterFern: ferns[23],
+			LEDs: reverseLEDs(devices[24].LEDs[1][13:13+7]),
 		},
 		"B1D": &lighting.Linear{
 			InnerFern: ferns[23],
 			OuterFern: ferns[24],
+			LEDs: reverseLEDs(devices[24].LEDs[1][0:16+16]),
 		},
 
+
+		// TODO: Ambiguous chain
 		"B2A": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[26],
+			LEDs: reverseLEDs(devices[26].LEDs[1][16:16+16]),
 		},
 		"B2B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[25],
+			LEDs: reverseLEDs(devices[26].LEDs[1][16:16+16]),
 		},
+
 
 		"C1A": &lighting.Linear{
 			OuterFern: ferns[31],
+			LEDs: reverseLEDs(devices[35].LEDs[1][27:27+6]),
 		},
 		"C1B": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[33],
+			LEDs: reverseLEDs(devices[35].LEDs[1][18:18+9]),
 		},
 		"C1C": &lighting.Linear{
 			InnerFern: ferns[33],
 			OuterFern: ferns[34],
+			LEDs: reverseLEDs(devices[35].LEDs[1][11:11+7]),
 		},
 		"C1D": &lighting.Linear{
 			InnerFern: ferns[34],
 			OuterFern: ferns[35],
+			LEDs: reverseLEDs(devices[35].LEDs[1][0:11]),
 		},
 
+		// TODO: Ambiguous chain
 		"C2A": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[32],
+			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
 		},
 		"C2B": &lighting.Linear{
 			InnerFern: ferns[31],
 			OuterFern: ferns[36],
+			LEDs: reverseLEDs(devices[13].LEDs[1][16:16+16]),
 		},
 
 		"D1A": &lighting.Linear{
