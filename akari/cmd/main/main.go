@@ -1,7 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"encoding/hex"
+	"fmt"
 	"image/color"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +35,11 @@ type Payload struct {
 var upgrader = websocket.Upgrader{}
 var lisMutex = new(sync.Mutex)
 var listeners = make(map[string]chan<- *Payload)
+
+func printHelp() {
+	fmt.Println("Available commands:")
+	fmt.Println("add_neural <fern-id>  <hex> <priority> <speed> radius> <- add neural effect")
+}
 
 func main() {
 	system := lighting.NewSystem()
@@ -99,6 +110,100 @@ func main() {
 			}
 		}
 	}()
+	
+	effectID := 1
+	scan := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("> ")
+		if !scan.Scan() {
+			fmt.Println("Goodbye!")
+			break
+		}
+
+		args := strings.Split(scan.Text(), " ")
+		if len(args) < 1 {
+			printHelp()
+			continue
+		}
+
+		switch args[0] {
+		case "?", "help":
+			printHelp()
+		case "add_neural":
+			if len(args) != 6 {
+				fmt.Println("expected `add_neural` + 5 arguments")
+				break
+			}
+
+			fernid, err := strconv.Atoi(args[1])
+			if err != nil {
+				fmt.Println("Invalid fern id")
+				fmt.Println(err)
+				break
+			}
+			startFern, ok := ferns[fernid]
+			if !ok {
+				//do something here
+				fmt.Println("Fern id is invalid")
+				break
+			}
+
+			dec, err := hex.DecodeString(args[2])
+			if err != nil {
+				fmt.Println("Invalid hex")
+				fmt.Println(err)
+				break
+			}
+
+			if len(dec) != 3 {
+				fmt.Println("Invalid hex: hex must be 3 bytes")
+				break
+			}
+
+			priority, err := strconv.Atoi(args[3])
+			if err != nil {
+				fmt.Println("Invalid priority")
+				fmt.Println(err)
+				break
+			}
+			if (priority < 0 || priority > 5)
+			{
+				fmt.Println("Invalid priority: priority must be 0-5")
+				break
+			}
+
+			speed, err := strconv.Atoi(args[4])
+			if err != nil {
+				fmt.Println("Invalid speed")
+				fmt.Println(err)
+				break
+			}
+
+			neuralRadius, err := strconv.Atoi(args[5])
+			if err != nil {
+				fmt.Println("Invalid neural radius")
+				fmt.Println(err)
+				break
+			}
+			colorRGBA := color.RGBA{
+				R: dec[0],
+				G: dec[1],
+				B: dec[2],
+			}
+			neuralEffect := lighting.NewNeural(colorRGBA, startFern, priority, speed, neuralRadius)
+			system.AddEffect(strconv.Itoa(effectID), neuralEffect)
+
+		case "ls":
+			deviceMutex.Lock()
+			for ip, seen := range devices {
+				fmt.Println(ip, "-", "last seen", humanize.Time(seen))
+			}
+			deviceMutex.Unlock()
+		default:
+			fmt.Println("Unknown command, type `help` for help")
+		}
+
+	}
 
 	// TODO: add proper translations
 	receiver, err := netscan.Receive(logger, []*geo.Point{})
