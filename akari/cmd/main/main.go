@@ -205,10 +205,12 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 
 		"D1A": &lighting.Linear{
 			OuterFern: ferns[41],
+			LEDs:      reverseLEDs(devices[42].LEDs[1][12 : 12+13]),
 		},
 		"D1B": &lighting.Linear{
 			InnerFern: ferns[41],
 			OuterFern: ferns[42],
+			LEDs:      reverseLEDs(devices[42].LEDs[1][0:12]),
 		},
 
 		"D2A": &lighting.Linear{
@@ -233,14 +235,17 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 
 		"F1A": &lighting.Linear{
 			OuterFern: ferns[61],
+			LEDs:      reverseLEDs(devices[62].LEDs[1][12+14 : 12+14+11]),
 		},
 		"F1B": &lighting.Linear{
 			InnerFern: ferns[61],
 			OuterFern: ferns[63],
+			LEDs:      reverseLEDs(devices[62].LEDs[1][12 : 12+14]),
 		},
 		"F1C": &lighting.Linear{
 			InnerFern: ferns[63],
 			OuterFern: ferns[62],
+			LEDs:      reverseLEDs(devices[62].LEDs[1][0:12]),
 		},
 
 		"F2A": &lighting.Linear{
@@ -258,40 +263,49 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 
 		"G1A": &lighting.Linear{
 			OuterFern: ferns[71],
+			LEDs:      reverseLEDs(devices[73].LEDs[1][13+13 : 13+13+13]),
 		},
 		"G1B": &lighting.Linear{
 			InnerFern: ferns[71],
 			OuterFern: ferns[72],
+			LEDs:      reverseLEDs(devices[73].LEDs[1][13 : 13+13]),
 		},
 		"G1C": &lighting.Linear{
 			InnerFern: ferns[72],
 			OuterFern: ferns[73],
+			LEDs:      reverseLEDs(devices[73].LEDs[1][0:13]),
 		},
 
 		"H1A": &lighting.Linear{
 			InnerFern: ferns[84],
 			OuterFern: ferns[83],
-			LEDs:      reverseLEDs(devices[81].LEDs[1][30 : 30+13]),
+			LEDs:      reverseLEDs(devices[81].LEDs[1][14+16 : 14+16+13]),
 		},
 		"H1B": &lighting.Linear{
 			InnerFern: ferns[83],
 			OuterFern: ferns[82],
+			LEDs:      reverseLEDs(devices[81].LEDs[1][16 : 16+14]),
 		},
 		"H1C": &lighting.Linear{
 			InnerFern: ferns[82],
 			OuterFern: ferns[81],
+			LEDs:      reverseLEDs(devices[81].LEDs[1][0:16]),
 		},
+
 		"H2A": &lighting.Linear{
 			InnerFern: ferns[82],
 			OuterFern: ferns[85],
+			LEDs:      reverseLEDs(devices[87].LEDs[1][9+11 : 9+11+12]),
 		},
 		"H2B": &lighting.Linear{
 			InnerFern: ferns[85],
 			OuterFern: ferns[86],
+			LEDs:      reverseLEDs(devices[87].LEDs[1][9 : 9+11]),
 		},
 		"H2C": &lighting.Linear{
 			InnerFern: ferns[87],
 			OuterFern: ferns[88],
+			LEDs:      reverseLEDs(devices[87].LEDs[1][0:9]),
 		},
 	}
 
