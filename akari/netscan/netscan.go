@@ -24,7 +24,7 @@ type Receiver struct {
 	ticker   *time.Ticker
 
 	resultMutex *sync.Mutex
-	results     [5]*Result
+	results     [6]*Result
 
 	translations []*geo.Point
 }
@@ -58,7 +58,7 @@ func Receive(logger *logrus.Logger, trans []*geo.Point) (*Receiver, error) {
 					return
 				}
 
-				for i := 1; i <= 4; i++ {
+				for i := 2; i <= 5; i++ {
 					id := strconv.Itoa(i)
 					idN := i
 					client.On("scan-"+id, func(data interface{}) interface{} {
@@ -118,7 +118,7 @@ func (r *Receiver) ScanPeople(crowd *geo.Map) {
 }
 
 func (r *Receiver) GetAll() []*geo.Map {
-	results := make([]*geo.Map, 5)
+	results := make([]*geo.Map, 6)
 	r.resultMutex.Lock()
 	defer r.resultMutex.Unlock()
 

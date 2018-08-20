@@ -132,6 +132,10 @@ func (s *Scanner) ScanPeople(crowd *geo.Map) {
 		lastPoint = point
 	}
 
+	if lastPoint == nil {
+		return
+	}
+
 	// fmt.Println("strength:", aggregate.strength)
 
 	if distComp-(lastPoint.Distance/100) < aggregate.count {

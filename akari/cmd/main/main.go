@@ -34,9 +34,9 @@ var upgrader = websocket.Upgrader{}
 var lisMutex = new(sync.Mutex)
 var listeners = make(map[string]chan<- *Payload)
 
-var activate [5]bool
-var closeFerns = []int{
-	0, 0, 62, 44, 24,
+var activate [6]bool
+var closeFerns = [][]int{
+	{}, {}, {62, 64, 66}, {44, 42, 45}, {26, 24, 25},
 }
 
 func printHelp() {
@@ -101,47 +101,53 @@ func main() {
 	// }
 
 	system.AddEffect("breathing", lighting.NewBreathing(1))
+	// system.AddEffect("blank", lighting.NewBlank(1))
 
 	reporter := report.NewReporter(mapping.Conn, logger)
 
 	// var edgeFerns = []int{66, 62, 64, 53, 42, 35, 32, 24, 26, 73, 25, 16, 13}
 
 	go func() {
-		last := time.Now()
-		for range time.Tick(42 * time.Millisecond) {
+		treeLast := time.Now()
+		neuralLast := time.Now()
+		for range time.Tick(33 * time.Millisecond) {
 			go func() {
 				defer func() {
 					if r := recover(); r != nil {
 						fmt.Println(r)
 					}
 				}()
-				if time.Since(last) > time.Second {
+				if time.Since(treeLast) > 2200*time.Millisecond {
 					system.AddEffect(uuid.New().String(), lighting.NewNeural(color.RGBA{
 						R: 0,
 						G: 0xff,
 						B: 0,
-					}, nil, 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, true))
-					last = time.Now()
+					}, ferns[84], 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, true))
+					treeLast = time.Now()
+				}
 
+				if time.Since(neuralLast) > 1000*time.Millisecond {
 					// n := rand.Intn(len(edgeFerns))
-
-					for i := 2; i <= 4; i++ {
+					for i := 2; i <= 5; i++ {
 						if activate[i] {
 							fmt.Println("activated!")
-							system.AddEffect(uuid.New().String(), lighting.NewNeural(color.RGBA{
-								R: 0xff,
-								G: 0x00,
-								B: 0x00,
-							}, ferns[closeFerns[i]], 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, false))
+							for _, fern := range closeFerns[i] {
+								system.AddEffect(uuid.New().String(), lighting.NewNeural(color.RGBA{
+									R: 0xff,
+									G: 0xff,
+									B: 0xff,
+								}, ferns[fern], 4, lighting.NeuralStepTime, lighting.NeuralEffectRadius, false))
+							}
 						}
 					}
-					return
+
+					neuralLast = time.Now()
 				}
 
 				system.Run()
 				for _, dev := range devices {
 					report := reporter.GetReport(int(dev.Addr.IP.To4()[3]))
-					if report != nil && time.Since(report.LastSeen) < 3*time.Second {
+					if report != nil && time.Since(report.LastSeen) < 7*time.Second {
 						dev.Render()
 					}
 				}
@@ -241,12 +247,25 @@ func main() {
 		receiver.ScanPeople(crowd)
 		fmt.Println("scan")
 		results := receiver.GetAll()
-		for i := 1; i <= 4; i++ {
+
+		if results[2] != nil {
+			payload := &Payload{
+				Ferns:  []*Fern{},
+				Sensor: results[2].Points,
+			}
+			lisMutex.Lock()
+			for _, lis := range listeners {
+				lis <- payload
+			}
+			lisMutex.Unlock()
+		}
+
+		for i := 2; i <= 5; i++ {
 			if results[i] == nil {
 				continue
 			}
 
-			if len(results[i].Within(&geo.Point{X: 0, Y: 0}, 150)) > 0 {
+			if len(results[i].Within(&geo.Point{X: 0, Y: 0}, 170)) > 0 {
 				fmt.Println("activated!")
 				activate[i] = true
 			} else {
@@ -298,12 +317,12 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 
 		"B1A": &lighting.Linear{
 			OuterFern: ferns[21],
-			LEDs:      reverseLEDs(devices[24].LEDs[1][26 : 26+8]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][27 : 27+9]),
 		},
 		"B1B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[22],
-			LEDs:      reverseLEDs(devices[24].LEDs[1][20 : 20+6]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][20 : 20+7]),
 		},
 		"B1C": &lighting.Linear{
 			InnerFern: ferns[22],
@@ -313,7 +332,7 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 		"B1D": &lighting.Linear{
 			InnerFern: ferns[23],
 			OuterFern: ferns[24],
-			LEDs:      reverseLEDs(devices[24].LEDs[1][0 : 16+16]),
+			LEDs:      reverseLEDs(devices[24].LEDs[1][0:13]),
 		},
 
 		"B2A": &lighting.Linear{
@@ -324,7 +343,7 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 		"B2B": &lighting.Linear{
 			InnerFern: ferns[21],
 			OuterFern: ferns[25],
-			LEDs:      devices[26].LEDs[1][17 : 17+18],
+			LEDs:      devices[25].LEDs[1][17 : 17+18],
 		},
 
 		"C1A": &lighting.Linear{
@@ -471,9 +490,14 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 			LEDs:      reverseLEDs(devices[87].LEDs[1][9 : 9+11]),
 		},
 		"H2C": &lighting.Linear{
-			InnerFern: ferns[87],
-			OuterFern: ferns[88],
+			InnerFern: ferns[86],
+			OuterFern: ferns[87],
 			LEDs:      reverseLEDs(devices[87].LEDs[1][0:9]),
+		},
+
+		"HFAKE": &lighting.Linear{
+			OuterFern: ferns[84],
+			LEDs:      nil,
 		},
 	}
 
@@ -498,8 +522,7 @@ func mapSystem(system *lighting.System, devices map[int]*mapping.Device, ferns m
 		linears["E1A"],
 		linears["E1B"],
 		linears["D1A"],
-		linears["H1A"],
-		linears["H2A"],
+		linears["HFAKE"],
 	}
 
 	system.TreeBase.LEDs = append(system.TreeBase.LEDs, devices[8].LEDs[0]...)

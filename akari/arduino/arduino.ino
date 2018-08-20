@@ -3,20 +3,20 @@
 #include <enc28j60.h>
 #include <FastLED.h>
 
-#define BOARD_ID 73
+#define BOARD_ID 9
 
 #define ORDER_M20 RBG
 #define ORDER_M30 RBG
 
-#define ORDER_1 ORDER_M20
+#define ORDER_1 ORDER_M30
 #define ORDER_2 ORDER_M30
-#define ORDER_3 ORDER_M20
-#define ORDER_4 ORDER_M20
+#define ORDER_3 ORDER_M30
+#define ORDER_4 ORDER_M30
 
-#define NUM_1 50
-#define NUM_2 60
-#define NUM_3 0
-#define NUM_4 0
+#define NUM_1 120
+#define NUM_2 70
+#define NUM_3 70
+#define NUM_4 70
 
 #define NUM_PINS 4
 #define NUM_TOTAL NUM_1 + NUM_2 + NUM_3 + NUM_4

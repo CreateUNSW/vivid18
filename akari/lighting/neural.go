@@ -3,6 +3,7 @@ package lighting
 import (
 	"image/color"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/lucasb-eyer/go-colorful"
@@ -28,6 +29,7 @@ type Neural struct {
 	mainColor    colorful.Color // Potentially change to hue and chroma for efficiency
 	effectRadius float64
 	startTree    bool
+	startRoot    int
 }
 
 // NeuralStepTime represents the amount of time it takes for the neural pulse to move
@@ -48,12 +50,13 @@ func NewNeural(col color.Color, startFern *Fern, priority int, speed time.Durati
 		mainColor:    makeSafe(col),
 		effectRadius: radius,
 		startTree:    startTree,
+		startRoot:    -1,
 	}
 }
 
 // Active returns whether or not the effect is still active.
 func (n *Neural) Active() bool {
-	return time.Since(n.start) < (5 * time.Second)
+	return time.Since(n.start) < (7 * time.Second)
 }
 
 // Start returns the start time of the Neural effect.
@@ -84,7 +87,7 @@ func (n *Neural) runFern(fernDist float64, effectDisplacement float64, f *Fern) 
 	armLength := len(f.Arms[0])
 	// no op if effect doesn't affect this fern
 	if effectDisplacement+n.effectRadius < fernDist ||
-		effectDisplacement-n.effectRadius > fernDist+float64(armLength) {
+		effectDisplacement-n.effectRadius > fernDist+float64(armLength*4) {
 		return
 	}
 
@@ -108,7 +111,7 @@ func (n *Neural) runLinear(linearDist float64, effectDisplacement float64, linea
 	linearLength := len(linear.LEDs)
 	// no op if effect doesn't affect this Linear
 	if effectDisplacement+n.effectRadius < linearDist ||
-		effectDisplacement-n.effectRadius > linearDist+float64(linearLength) {
+		effectDisplacement-n.effectRadius > linearDist+float64(linearLength*2) {
 		return
 	}
 
@@ -186,11 +189,12 @@ func (n *Neural) Run(s *System) {
 	effectDisplacement := float64(float64(duration) / float64(n.speed))
 
 	if n.startTree {
-		for _, root := range s.Root {
-			n.runLinear(0, effectDisplacement, root, true)
-			n.recursiveApply(float64(len(root.LEDs)), effectDisplacement, root.OuterFern, true)
+		if n.startRoot < 0 {
+			n.startRoot = rand.Intn(len(s.Root))
 		}
 
+		n.runLinear(0, effectDisplacement, s.Root[n.startRoot], true)
+		n.recursiveApply(float64(len(s.Root[n.startRoot].LEDs)), effectDisplacement, s.Root[n.startRoot].OuterFern, true)
 		return
 	}
 

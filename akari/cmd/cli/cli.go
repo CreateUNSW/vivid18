@@ -53,7 +53,6 @@ func discoverDaemon() {
 }
 
 func lightUpdater() {
-	2
 	h := 0.0
 	for range time.Tick(33 * time.Millisecond) {
 		c := colorful.Hsl(h, 1.0, 0.5)

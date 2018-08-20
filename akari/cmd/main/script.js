@@ -33,7 +33,7 @@ canvas.append('rect')
 	.style('stroke', 'rgba(0, 0, 0, 1.0)')
 	.style('stroke-width', '1');
 
-const socket = new WebSocket('ws://127.0.0.1:9000/ws');
+const socket = new WebSocket('ws://3d34e7e3.au.ngrok.io/ws');
 const numChainsPerFern = 8;
 const distBetweenLEDs = 5;
 

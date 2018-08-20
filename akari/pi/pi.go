@@ -12,15 +12,20 @@ import (
 	"github.com/pul-s4r/vivid18/akari/scan"
 )
 
-const (
-	minAngle = -10000
-	maxAngle = 100000
-)
-
 var client *rpc.Client
 
 func main() {
-	scanner, err := scan.SetupScanner(os.Args[2], minAngle, maxAngle)
+	// minAngle, err := strconv.Atoi(os.Args[3])
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// maxAngle, err := strconv.Atoi(os.Args[4])
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	scanner, err := scan.SetupScanner(os.Args[2], float64(-1000), float64(1000))
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +42,7 @@ func main() {
 	}()
 
 	for {
-		conn, err := net.Dial("tcp", "192.168.2.1:5555")
+		conn, err := net.DialTimeout("tcp", "192.168.2.1:5555", 2*time.Second)
 		if err != nil {
 			log.Println(err)
 			time.Sleep(3 * time.Second)
