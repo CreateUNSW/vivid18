@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/1lann/rpc"
+	"github.com/CreateUNSW/vivid18/akari/geo"
 	"github.com/Sirupsen/logrus"
-	"github.com/pul-s4r/vivid18/akari/geo"
 )
 
 const listenPort = "5555"

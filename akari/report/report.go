@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CreateUNSW/vivid18/akari/mapping"
 	"github.com/Sirupsen/logrus"
-	"github.com/pul-s4r/vivid18/akari/mapping"
 )
 
 // Possible errors.

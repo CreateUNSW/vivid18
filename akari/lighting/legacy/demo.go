@@ -4,8 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/CreateUNSW/vivid18/akari/geo"
 	colorful "github.com/lucasb-eyer/go-colorful"
-	"github.com/pul-s4r/vivid18/akari/geo"
 )
 
 // Demo represents a demo effect.

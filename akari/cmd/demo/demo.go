@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CreateUNSW/vivid18/akari/geo"
+	"github.com/CreateUNSW/vivid18/akari/lighting"
+	"github.com/CreateUNSW/vivid18/akari/scan"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
-	"github.com/pul-s4r/vivid18/akari/geo"
-	"github.com/pul-s4r/vivid18/akari/lighting"
-	"github.com/pul-s4r/vivid18/akari/scan"
 )
 
 // {

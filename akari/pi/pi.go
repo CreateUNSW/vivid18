@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/1lann/rpc"
-	"github.com/pul-s4r/vivid18/akari/geo"
-	"github.com/pul-s4r/vivid18/akari/scan"
+	"github.com/CreateUNSW/vivid18/akari/geo"
+	"github.com/CreateUNSW/vivid18/akari/scan"
 )
 
 var client *rpc.Client

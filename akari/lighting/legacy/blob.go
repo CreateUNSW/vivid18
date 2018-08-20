@@ -6,7 +6,7 @@ import (
 
 	"github.com/lucasb-eyer/go-colorful"
 
-	"github.com/pul-s4r/vivid18/akari/geo"
+	"github.com/CreateUNSW/vivid18/akari/geo"
 )
 
 // Blob represents a blob effect.
